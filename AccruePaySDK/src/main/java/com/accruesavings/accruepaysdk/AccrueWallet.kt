@@ -1,92 +1,76 @@
-package com.accruesavings.accruepaysdk
-
-import android.annotation.SuppressLint
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import android.webkit.WebView
 import androidx.fragment.app.Fragment
-import android.util.Log
-import android.webkit.WebSettings
-
-private const val TAG = "AccrueWallet"
+import com.accruesavings.accruepaysdk.AccrueContextData
+import android.net.Uri
+import com.accruesavings.accruepaysdk.AppConstants
 
 class AccrueWallet : Fragment() {
 
-    companion object {
-        private const val ARG_MERCHANT_ID = "arg_merchant_id"
-        private const val ARG_REDIRECT_TOKEN = "arg_redirect_token"
-        private const val ARG_CONTEXT_DATA = "arg_context_data"
+    private lateinit var merchantId: String
+    private var redirectionToken: String? = null
+    private var isSandbox: Boolean = false
+    private var url: String? = null
+    private var onAction: ((String) -> Unit)? = null
+    private var contextData: AccrueContextData = AccrueContextData()
+    private lateinit var webView: AccrueWebView
 
-        @JvmStatic
+    companion object {
         fun newInstance(
             merchantId: String,
-            redirectToken: String,
-            onSignIn: (() -> Unit)? = null,
-            contextData: ContextData? = null
+            redirectionToken: String? = null,
+            isSandbox: Boolean,
+            url: String? = null,
+            contextData: AccrueContextData = AccrueContextData(),
+            onAction: ((String) -> Unit)? = null
         ): AccrueWallet {
-            val fragment = AccrueWallet()
-            val args = Bundle()
-            args.putString(ARG_MERCHANT_ID, merchantId)
-            args.putString(ARG_REDIRECT_TOKEN, redirectToken)
-            args.putParcelable(ARG_CONTEXT_DATA, contextData)
-            fragment.arguments = args
-            fragment.onSignIn = onSignIn
-            return fragment
+            return AccrueWallet().apply {
+                this.merchantId = merchantId
+                this.redirectionToken = redirectionToken
+                this.isSandbox = isSandbox
+                this.url = url
+                this.contextData = contextData
+                this.onAction = onAction
+            }
         }
     }
 
-    private var merchantId: String? = null
-    private var redirectToken: String? = null
-    private var contextData: ContextData? = null
-    private var onSignIn: (() -> Unit)? = null
-
-    override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
-        arguments?.let {
-            merchantId = it.getString(ARG_MERCHANT_ID)
-            redirectToken = it.getString(ARG_REDIRECT_TOKEN)
-            contextData = it.getParcelable(ARG_CONTEXT_DATA)
-        }
-    }
-
-    @SuppressLint("SetJavaScriptEnabled")
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
         savedInstanceState: Bundle?
-    ): View? {
-        val view = inflater.inflate(R.layout.fragment_webview, container, false)
-        val webView: WebView = view.findViewById(R.id.webview)
+    ): View {
+        val builtUrl = buildURL(isSandbox, url)
 
-        val webSettings: WebSettings = webView.settings
-        webSettings.javaScriptEnabled = true
-        webSettings.userAgentString = "AccruePay SDK 0.0.1"
+        // Create AccrueWebView programmatically
+        webView = AccrueWebView(requireContext(), url = builtUrl, contextData, onAction)
+        
+        // Set layout parameters
+        val layoutParams = ViewGroup.LayoutParams(
+            ViewGroup.LayoutParams.MATCH_PARENT,
+            ViewGroup.LayoutParams.MATCH_PARENT
+        )
+        webView.layoutParams = layoutParams
 
-        contextData?.let {
-            webView.addJavascriptInterface(ContextDataInterface(requireContext(), it), "AccruePay")
+        // Return the webView as the root view
+        return webView
+    }
+
+    private fun buildURL(isSandbox: Boolean, url: String?): String {
+        val apiBaseUrl = when {
+            isSandbox -> AppConstants.sandboxUrl
+            url != null -> url
+            else -> AppConstants.productionUrl
         }
 
-        // Use the parameters in your WebView configuration or loading logic
-        val url = buildUrl(merchantId, redirectToken)
+        val uri = Uri.parse(apiBaseUrl).buildUpon()
+            .appendQueryParameter("merchantId", merchantId)
 
-        webView.loadUrl(url)
+        redirectionToken?.let {
+            uri.appendQueryParameter("redirectionToken", it)
+        }
 
-        // Optionally, set up JavaScript interface or other WebView settings
-
-        return view
+        return uri.build().toString()
     }
-
-    private fun buildUrl(merchantId: String?, redirectToken: String?): String {
-        // Build your URL based on the parameters
-        // For example:
-        return "${AppConstants.apiBaseUrl}?merchantId=$merchantId&redirectionToken=$redirectToken"
-    }
-
-    // Optionally call onSignIn when needed
-    fun signIn() {
-        Log.i(TAG, "onSignIn called")
-        onSignIn?.invoke()
-    }
-
 }

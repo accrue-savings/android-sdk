@@ -1,12 +1,13 @@
 package com.accruesavings.accruepaysdkdemo
 
+import AccrueWallet
 import android.os.Bundle
 import android.widget.Button
 import android.widget.EditText
 import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatActivity
-import com.accruesavings.accruepaysdk.ContextData
-import com.accruesavings.accruepaysdk.AccrueWallet
+import com.accruesavings.accruepaysdk.AccrueContextData
+import com.accruesavings.accruepaysdk.AccrueUserData
 import com.accruesavings.accruepaysdk.SampleData
 
 class MainActivity : AppCompatActivity() {
@@ -31,18 +32,22 @@ class MainActivity : AppCompatActivity() {
 
         reloadButton.setOnClickListener {
             val merchantId = merchantIdInput.text.toString()
-            val redirectToken = redirectTokenInput.text.toString()
+            val redirectionToken = redirectTokenInput.text.toString()
 
-            val contextData = ContextData(
+            val userData = AccrueUserData(
                 referenceId = "defaultReferenceId",
                 phoneNumber = "defaultPhoneNumber",
                 email = "defaultEmail"
             )
 
+            val contextData = AccrueContextData(userData)
+
             val fragment = AccrueWallet.newInstance(
-                merchantId = merchantId,
-                redirectToken = redirectToken,
-                contextData = contextData
+                url = merchantId,
+                contextData = contextData,
+                redirectionToken = redirectionToken,
+                isSandbox = true,
+                merchantId = merchantIdInput.text.toString(),
             )
 
             supportFragmentManager.beginTransaction()
