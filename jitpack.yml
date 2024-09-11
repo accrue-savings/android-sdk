@@ -6,5 +6,5 @@ jdk:
   -openjdk17
 
 install:
-  - ./gradlew tasks
-  - ./gradlew clean EmbedSDK:publishToMavenLocal --stacktrace
+  - ./gradlew :EmbedSDK:assembleRelease
+  - ./gradlew :EmbedSDK:publishToMavenLocal --stacktrace

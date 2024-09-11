@@ -37,6 +37,12 @@ android {
     kotlinOptions {
         jvmTarget = "1.8"
     }
+    publishing {
+        singleVariant("release") {
+            withSourcesJar()
+            withJavadocJar()
+        }
+    }
 }
 
 
@@ -56,14 +62,20 @@ dependencies {
     androidTestImplementation(libs.androidx.espresso.core)
 }
 
-publishing {
-    publications {
-        create<MavenPublication>("release") {
-            from(components["release"])
+afterEvaluate {
+    publishing {
+        publications {
+            register<MavenPublication>("release") {
+                // from(components["release"])
 
-            groupId = "com.github.accrue-savings"
-            artifactId = "android-sdk"
-            version = "v1.0.10"
+                groupId = "com.github.accrue-savings"
+                artifactId = "android-sdk"
+                version = "v1.0.11"
+
+                afterEvaluate {
+                    from(components["release"])
+                }
+            }
         }
     }
 }
