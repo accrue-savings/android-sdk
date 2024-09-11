@@ -19,6 +19,6 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "AccruePay SDK Demo"
+rootProject.name = "AccrueEmbed SDK Demo"
 include(":app")
-include(":AccruePaySDK")
+include(":EmbedSDK")
