@@ -46,8 +46,8 @@ afterEvaluate {
                 from(components["release"])
 
                 groupId = "com.github.accrue-savings"
-                artifactId = "EmbedSDK"
-                version = "1.0.0"
+                artifactId = "android-sdk"
+                version = "1.0.2"
             }
         }
     }
