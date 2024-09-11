@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name">AccruePay SDK Demo</string>
+    <string name="app_name">Accrue Embed SDK Demo</string>
     <string name="merchant_id_label">Merchant ID:</string>
     <string name="redirect_token_lagel">Redirect Token:</string>
     <string name="reload_button">Reload</string>
