@@ -45,7 +45,7 @@ afterEvaluate {
             create<MavenPublication>("release") {
                 from(components["release"])
 
-                groupId = "com.accruesavings.EmbedSDK"
+                groupId = "com.github.accrue-savings"
                 artifactId = "EmbedSDK"
                 version = "1.0.0"
             }
