@@ -62,9 +62,9 @@ afterEvaluate {
             create<MavenPublication>("release") {
                 from(components["release"])
 
-                groupId = "com.accruessavings.embedsdk"
-                artifactId = "EmbedSDK"
-                version = "v1.0.5"
+                groupId = "com.github.accrue-savings"
+                artifactId = "android-sdk"
+                version = "v1.0.6"
             }
         }
     }
