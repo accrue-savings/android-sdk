@@ -70,7 +70,7 @@ afterEvaluate {
 
                 groupId = "com.github.accrue-savings"
                 artifactId = "android-sdk"
-                version = "v1.0.14"
+                version = "v1.0.15"
 
                 afterEvaluate {
                     from(components["release"])
