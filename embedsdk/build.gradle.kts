@@ -47,7 +47,7 @@ afterEvaluate {
 
                 groupId = "com.github.accrue-savings"
                 artifactId = "android-sdk"
-                version = "1.0.2"
+                version = "v1.0.4"
             }
         }
     }
