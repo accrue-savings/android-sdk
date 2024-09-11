@@ -56,16 +56,14 @@ dependencies {
     androidTestImplementation(libs.androidx.espresso.core)
 }
 
-afterEvaluate {
-    publishing {
-        publications {
-            create<MavenPublication>("release") {
-                from(components["release"])
+publishing {
+    publications {
+        create<MavenPublication>("release") {
+            from(components["release"])
 
-                groupId = "com.github.accrue-savings"
-                artifactId = "android-sdk"
-                version = "v1.0.7"
-            }
+            groupId = "com.github.accrue-savings"
+            artifactId = "android-sdk"
+            version = "v1.0.8"
         }
     }
 }

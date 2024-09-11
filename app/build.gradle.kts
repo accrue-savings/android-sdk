@@ -38,7 +38,7 @@ dependencies {
     implementation(libs.material)
     implementation(libs.androidx.activity)
     implementation(libs.androidx.constraintlayout)
-    implementation("com.github.accrue-savings:android-sdk:v1.0.6")
+    implementation("com.github.accrue-savings:android-sdk:v1.0.8")
 //    implementation(project(":EmbedSDK"))
     implementation(libs.androidx.ui.android)
     testImplementation(libs.junit)

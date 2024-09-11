@@ -1,8 +1,10 @@
 before_install:
-  - sdk install java 17.0.1-open
-  - sdk use java 17.0.1-open
+  - sdk install java 17.0.7-open
+  - sdk use java 17.0.7-open
 
 jdk:
   -openjdk17
+
 install:
-  - ./gradlew clean EmbedSDK:publishToMavenLocal
+  - ./gradlew tasks
+  - ./gradlew clean EmbedSDK:publishToMavenLocal --stacktrace
