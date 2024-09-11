@@ -21,5 +21,4 @@ dependencyResolutionManagement {
 }
 
 rootProject.name = "AccrueEmbed SDK Demo"
-include(":app")
-include(":EmbedSDK")
+include(":EmbedSDK", ":app")
