@@ -39,19 +39,7 @@ android {
     }
 }
 
-afterEvaluate {
-    publishing {
-        publications {
-            create<MavenPublication>("release") {
-                from(components["release"])
 
-                groupId = "com.github.accrue-savings"
-                artifactId = "android-sdk"
-                version = "v1.0.4"
-            }
-        }
-    }
-}
 
 dependencies {
     val composeBom = platform("androidx.compose:compose-bom:2024.06.00")
@@ -66,4 +54,18 @@ dependencies {
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
+}
+
+afterEvaluate {
+    publishing {
+        publications {
+            create<MavenPublication>("release") {
+                from(components["release"])
+
+                groupId = "com.accruessavings.embedsdk"
+                artifactId = "EmbedSDK"
+                version = "v1.0.5"
+            }
+        }
+    }
 }
