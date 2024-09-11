@@ -63,7 +63,7 @@ publishing {
 
             groupId = "com.github.accrue-savings"
             artifactId = "android-sdk"
-            version = "v1.0.8"
+            version = "v1.0.10"
         }
     }
 }
