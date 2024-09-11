@@ -1,13 +1,9 @@
 package com.accruesavings.embedsdk
 
 import android.content.Context
-import android.util.AttributeSet
 import android.webkit.WebView
 import android.webkit.WebViewClient
 import android.webkit.JavascriptInterface
-import com.accruesavings.embedsdk.AccrueContextData
-import com.accruesavings.embedsdk.AccrueDeviceContextData
-import com.accruesavings.embedsdk.AccrueWebEvents
 
 class AccrueWebView @JvmOverloads constructor(
     context: Context,

@@ -5,9 +5,7 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import androidx.fragment.app.Fragment
-import com.accruesavings.embedsdk.AccrueContextData
 import android.net.Uri
-import com.accruesavings.embedsdk.AppConstants
 
 class AccrueWallet : Fragment() {
 
