@@ -31,15 +31,15 @@ android {
 }
 
 
-
 dependencies {
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.appcompat)
     implementation(libs.material)
     implementation(libs.androidx.activity)
     implementation(libs.androidx.constraintlayout)
-//    implementation("com.github.accrue-savings:android-sdk:v1.0.14")
-    implementation(project(":EmbedSDK"))
+    implementation(project(":androidsdk"))
+//    implementation("com.github.accrue-savings:android-sdk:v1.0.15")
+//    implementation("com.accruesavings:android-sdk:v1.0.16")
     implementation(libs.androidx.ui.android)
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)

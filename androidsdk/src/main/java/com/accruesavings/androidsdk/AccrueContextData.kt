@@ -1,4 +1,4 @@
-package com.accruesavings.embedsdk
+package com.accruesavings.androidsdk
 
 import android.os.Parcel
 import android.os.Parcelable

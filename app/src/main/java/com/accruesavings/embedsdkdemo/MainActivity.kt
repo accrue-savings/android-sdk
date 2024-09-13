@@ -6,10 +6,10 @@ import android.widget.EditText
 import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatActivity
 import com.accruesavings.accruepaysdkdemo.R
-import com.accruesavings.embedsdk.AccrueContextData
-import com.accruesavings.embedsdk.AccrueUserData
-import com.accruesavings.embedsdk.AccrueWallet
-import com.accruesavings.embedsdk.SampleData
+import com.accruesavings.androidsdk.AccrueContextData
+import com.accruesavings.androidsdk.AccrueUserData
+import com.accruesavings.androidsdk.AccrueWallet
+import com.accruesavings.androidsdk.SampleData
 
 class MainActivity : AppCompatActivity() {
     private lateinit var merchantIdInput: EditText
@@ -44,11 +44,11 @@ class MainActivity : AppCompatActivity() {
             val contextData = AccrueContextData(userData)
 
             val fragment = AccrueWallet.newInstance(
-                url = merchantId,
+                url = "http://localhost:5173/webview",
                 contextData = contextData,
                 redirectionToken = redirectionToken,
                 isSandbox = true,
-                merchantId = merchantIdInput.text.toString(),
+                merchantId = merchantId,
             )
 
             supportFragmentManager.beginTransaction()

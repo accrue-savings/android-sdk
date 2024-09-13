@@ -1,14 +1,15 @@
-package com.accruesavings.embedsdk
+package com.accruesavings.androidsdk
 
+import android.net.Uri
 import android.os.Bundle
+import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import androidx.fragment.app.Fragment
-import android.net.Uri
 
 class AccrueWallet : Fragment() {
-
+    val TAG: String = "AccrueWallet"
     private lateinit var merchantId: String
     private var redirectionToken: String? = null
     private var isSandbox: Boolean = false
@@ -42,7 +43,7 @@ class AccrueWallet : Fragment() {
         savedInstanceState: Bundle?
     ): View {
         val builtUrl = buildURL(isSandbox, url)
-
+        Log.v(TAG, "builtUrl=$builtUrl");
         // Create AccrueWebView programmatically
         webView = AccrueWebView(requireContext(), url = builtUrl, contextData, onAction)
         
@@ -59,15 +60,15 @@ class AccrueWallet : Fragment() {
 
     private fun buildURL(isSandbox: Boolean, url: String?): String {
         val apiBaseUrl = when {
-            isSandbox -> AppConstants.sandboxUrl
             url != null -> url
+            isSandbox -> AppConstants.sandboxUrl
             else -> AppConstants.productionUrl
         }
 
         val uri = Uri.parse(apiBaseUrl).buildUpon()
             .appendQueryParameter("merchantId", merchantId)
 
-        redirectionToken?.let {
+        redirectionToken?.takeIf { it.isNotEmpty() }?.let {
             uri.appendQueryParameter("redirectionToken", it)
         }
 

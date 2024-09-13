@@ -1,3 +1,8 @@
+import java.util.Properties
+
+val githubProperties = Properties()
+githubProperties.load(file("github.properties").inputStream())
+
 pluginManagement {
     repositories {
         google {
@@ -11,14 +16,23 @@ pluginManagement {
         gradlePluginPortal()
     }
 }
+
 dependencyResolutionManagement {
     repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
     repositories {
         google()
         mavenCentral()
-        maven { url = uri("https://jitpack.io") }
+//        maven { url = uri("https://jitpack.io") }
+        maven {
+            name = "GitHubPackages"
+            url = uri("https://maven.pkg.github.com/accrue-savings/android-sdk")
+            credentials {
+                username = githubProperties["gpr.usr"] as String? ?: System.getenv("GITHUB_USERNAME")
+                password = githubProperties["gpr.key"] as String? ?: System.getenv("GITHUB_TOKEN")
+            }
+        }
     }
 }
 
-rootProject.name = "AccrueEmbed SDK Demo"
-include(":EmbedSDK", ":app")
+rootProject.name = "Accrue Android SDK Demo"
+include(":androidsdk", ":app")

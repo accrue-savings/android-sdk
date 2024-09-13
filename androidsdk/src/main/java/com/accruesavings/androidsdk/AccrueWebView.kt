@@ -1,9 +1,13 @@
-package com.accruesavings.embedsdk
+package com.accruesavings.androidsdk
 
 import android.content.Context
+import android.content.Intent
+import android.net.Uri
+import android.webkit.JavascriptInterface
+import android.webkit.WebResourceRequest
 import android.webkit.WebView
 import android.webkit.WebViewClient
-import android.webkit.JavascriptInterface
+
 
 class AccrueWebView @JvmOverloads constructor(
     context: Context,
@@ -18,8 +22,10 @@ class AccrueWebView @JvmOverloads constructor(
 
     private fun setupWebView() {
         settings.javaScriptEnabled = true
-        webViewClient = WebViewClient()
+        // local storage does not work without it
+        settings.domStorageEnabled = true
 
+        webViewClient = AccrueWebViewClient()
         // Add JavaScript interface
         addJavascriptInterface(WebAppInterface(onAction), AccrueWebEvents.eventHandlerName)
 
@@ -58,6 +64,20 @@ class AccrueWebView @JvmOverloads constructor(
         @JavascriptInterface
         fun postMessage(message: String) {
             onAction?.invoke(message)
+        }
+    }
+
+    // for links that open in new window to work
+    private class AccrueWebViewClient : WebViewClient() {
+        override fun shouldOverrideUrlLoading(view: WebView, request: WebResourceRequest): Boolean {
+            val url = request.url.toString()
+            if (url.startsWith("http://") || url.startsWith("https://")) {
+                view.context.startActivity(
+                    Intent(Intent.ACTION_VIEW, Uri.parse(url))
+                )
+                return true
+            }
+            return false
         }
     }
 

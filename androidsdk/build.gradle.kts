@@ -1,3 +1,5 @@
+import java.util.Properties
+
 plugins {
     alias(libs.plugins.android.library)
     alias(libs.plugins.jetbrains.kotlin.android)
@@ -6,9 +8,9 @@ plugins {
 }
 
 android {
-    group = "com.accruesavings.EmbedSDK"
+    group = "com.accruesavings.androidsdk"
     version = "1.0.0"
-    namespace = "com.accruesavings.EmbedSDK"
+    namespace = "com.accruesavings.androidsdk"
     compileSdk = 34
 
     buildFeatures {
@@ -62,20 +64,48 @@ dependencies {
     androidTestImplementation(libs.androidx.espresso.core)
 }
 
-afterEvaluate {
-    publishing {
-        publications {
-            register<MavenPublication>("release") {
-                // from(components["release"])
 
-                groupId = "com.github.accrue-savings"
-                artifactId = "android-sdk"
-                version = "v1.0.15"
+val githubProperties = Properties()
+githubProperties.load(rootProject.file("github.properties").inputStream())
 
-                afterEvaluate {
-                    from(components["release"])
-                }
+publishing {
+    publications {
+        register<MavenPublication>("release") {
+            groupId = "com.accruesavings"
+            artifactId = "androidsdk"
+            version = "v1.0.0"
+
+            afterEvaluate {
+                from(components["release"])
+            }
+        }
+    }
+    repositories {
+        maven {
+            name = "GitHubPackages"
+            url = uri("https://maven.pkg.github.com/accrue-savings/android-sdk")
+            credentials {
+                username = githubProperties["gpr.usr"] as String? ?: System.getenv("GPR_USER")
+                password = githubProperties["gpr.key"] as String? ?: System.getenv("GPR_API_KEY")
             }
         }
     }
 }
+//
+//afterEvaluate {
+//    publishing {
+//        publications {
+//            register<MavenPublication>("release") {
+//                // from(components["release"])
+//
+//                groupId = "com.github.accrue-savings"
+//                artifactId = "android-sdk"
+//                version = "v1.0.15"
+//
+//                afterEvaluate {
+//                    from(components["release"])
+//                }
+//            }
+//        }
+//    }
+//}

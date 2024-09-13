@@ -1,4 +1,4 @@
-package com.accruesavings.embedsdk
+package com.accruesavings.androidsdk
 
 import org.junit.Test
 
