@@ -1,7 +1,7 @@
 import java.util.Properties
 
 val githubProperties = Properties()
-githubProperties.load(file("github.properties").inputStream())
+githubProperties.load(file("github-read.properties").inputStream())
 
 pluginManagement {
     repositories {
@@ -22,7 +22,6 @@ dependencyResolutionManagement {
     repositories {
         google()
         mavenCentral()
-//        maven { url = uri("https://jitpack.io") }
         maven {
             name = "GitHubPackages"
             url = uri("https://maven.pkg.github.com/accrue-savings/android-sdk")
