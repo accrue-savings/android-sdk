@@ -14,7 +14,7 @@ class AccrueWallet : Fragment() {
     private var redirectionToken: String? = null
     private var isSandbox: Boolean = false
     private var url: String? = null
-    private var onAction: ((String) -> Unit)? = null
+    private var onAction: Map<AccrueAction, () -> Unit> = emptyMap()
     private var contextData: AccrueContextData = AccrueContextData()
     private lateinit var webView: AccrueWebView
 
@@ -25,7 +25,7 @@ class AccrueWallet : Fragment() {
             isSandbox: Boolean,
             url: String? = null,
             contextData: AccrueContextData = AccrueContextData(),
-            onAction: ((String) -> Unit)? = null
+            onAction: Map<AccrueAction, () -> Unit> = emptyMap()
         ): AccrueWallet {
             return AccrueWallet().apply {
                 this.merchantId = merchantId

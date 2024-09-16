@@ -6,6 +6,7 @@ import android.widget.EditText
 import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatActivity
 import com.accruesavings.accruepaysdkdemo.R
+import com.accruesavings.androidsdk.AccrueAction
 import com.accruesavings.androidsdk.AccrueContextData
 import com.accruesavings.androidsdk.AccrueSettingsData
 import com.accruesavings.androidsdk.AccrueUserData
@@ -53,6 +54,14 @@ class MainActivity : AppCompatActivity() {
                 redirectionToken = redirectionToken,
                 isSandbox = true,
                 merchantId = merchantId,
+                onAction = mapOf(
+                    AccrueAction.SignInButtonClicked to {
+                        // Handle sign in button click
+                    },
+                    AccrueAction.RegisterButtonClicked to {
+                        // Handle register button click
+                    }
+                )
             )
 
             supportFragmentManager.beginTransaction()

@@ -3,17 +3,20 @@ package com.accruesavings.androidsdk
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
+import android.util.Log
 import android.webkit.JavascriptInterface
 import android.webkit.WebResourceRequest
 import android.webkit.WebView
 import android.webkit.WebViewClient
+import org.json.JSONException
+import org.json.JSONObject
 
 
 class AccrueWebView @JvmOverloads constructor(
     context: Context,
     private var url: String,
     private var contextData: AccrueContextData? = null,
-    private var onAction: ((String) -> Unit)? = null
+    private var onAction: Map<AccrueAction, () -> Unit> = emptyMap()
 ) : WebView(context) {
 
     init {
@@ -27,7 +30,7 @@ class AccrueWebView @JvmOverloads constructor(
 
         webViewClient = AccrueWebViewClient()
         // Add JavaScript interface
-        addJavascriptInterface(WebAppInterface(onAction), AccrueWebEvents.eventHandlerName)
+        addJavascriptInterface(WebAppInterface(this.onAction), AccrueWebEvents.eventHandlerName)
 
         // Load URL
         loadUrl(url)
@@ -60,10 +63,21 @@ class AccrueWebView @JvmOverloads constructor(
         evaluateJavascript(script, null)
     }
 
-    private class WebAppInterface(private val onAction: ((String) -> Unit)?) {
+    private class WebAppInterface(private val onAction: Map<AccrueAction, () -> Unit> = emptyMap()) {
         @JavascriptInterface
         fun postMessage(message: String) {
-            onAction?.invoke(message)
+            try {
+                val jsonObject = JSONObject(message)
+                val type = jsonObject.optString("action")
+                
+                when (type) {
+                    "AccrueWallet::${AccrueAction.SignInButtonClicked}" -> onAction[AccrueAction.SignInButtonClicked]?.invoke()
+                    "AccrueWallet::${AccrueAction.RegisterButtonClicked}" -> onAction[AccrueAction.RegisterButtonClicked]?.invoke()
+                    else -> Log.w("AccrueWebView", "Unknown message type: $type")
+                }
+            } catch (e: JSONException) {
+                Log.e("AccrueWebView", "Error parsing JSON message: ${e.message}")
+            }
         }
     }
 
