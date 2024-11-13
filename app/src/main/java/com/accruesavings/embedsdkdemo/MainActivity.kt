@@ -50,10 +50,10 @@ class MainActivity : AppCompatActivity() {
             val contextData = AccrueContextData(userData, settingsData)
 
             val fragment = AccrueWallet.newInstance(
-                url = "http://localhost:5173/webview",
+//                url = "http://localhost:5173/webview",
                 contextData = contextData,
                 redirectionToken = redirectionToken,
-//                isSandbox = true,
+                isSandbox = true,
                 merchantId = merchantId,
                 onAction = mapOf(
                     AccrueAction.SignInButtonClicked to {
