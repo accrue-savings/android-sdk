@@ -3,8 +3,11 @@ package com.accruesavings.androidsdk
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
+import android.os.Message
 import android.util.Log
+import android.webkit.ConsoleMessage
 import android.webkit.JavascriptInterface
+import android.webkit.WebChromeClient
 import android.webkit.WebResourceRequest
 import android.webkit.WebView
 import android.webkit.WebViewClient
@@ -27,49 +30,71 @@ class AccrueWebView @JvmOverloads constructor(
         settings.javaScriptEnabled = true
         // local storage does not work without it
         settings.domStorageEnabled = true
-
+//        settings.setSupportMultipleWindows(true)
+//        settings.javaScriptCanOpenWindowsAutomatically = true
         webViewClient = AccrueWebViewClient()
-        // Add JavaScript interface
-        addJavascriptInterface(WebAppInterface(this.onAction), AccrueWebEvents.eventHandlerName)
+        webChromeClient = object : WebChromeClient() {
+            override fun onConsoleMessage(consoleMessage: ConsoleMessage): Boolean {
+                Log.d("WebViewConsole", "${consoleMessage.message()} at line ${consoleMessage.lineNumber()} in ${consoleMessage.sourceId()}")
+                return true
+            }
+        }
+        // Add JavaScript interface and context data
+        addJavascriptInterface(WebAppInterface(this.onAction, contextData), AccrueWebEvents.eventHandlerName)
 
         // Load URL
         loadUrl(url)
-
-        // Inject context data
-        contextData?.let { injectContextData(it) }
     }
 
-    fun updateContent(newUrl: String? = null, newContextData: AccrueContextData? = null) {
-        newUrl?.let { url ->
-            if (url != this.url) {
-                this.url = url
-                loadUrl(url)
+    private class WebAppInterface(private val onAction: Map<AccrueAction, () -> Unit> = emptyMap(), private val contextData: AccrueContextData?) {
+        @JavascriptInterface
+        fun getParentType(): String {
+            return "android"
+        }
+
+        @JavascriptInterface
+        fun getContextData(): String {
+            if(contextData === null) {
+                return "";
             }
+            val userData = contextData.userData
+            val settingsData = contextData.settingsData
+            val deviceContextData = AccrueDeviceContextData()
+            return JSONObject(mapOf(
+                "contextData" to mapOf(
+                    "userData" to mapOf(
+                        "referenceId" to userData.referenceId,
+                        "email" to userData.email,
+                        "phoneNumber" to userData.phoneNumber
+                    ),
+                    "settingsData" to mapOf(
+                        "shouldInheritAuthentication" to settingsData.shouldInheritAuthentication
+                    ),
+                    "deviceData" to mapOf(
+                        "sdk" to deviceContextData.sdk,
+                        "sdkVersion" to deviceContextData.sdkVersion,
+                        "brand" to deviceContextData.brand,
+                        "deviceName" to deviceContextData.deviceName,
+                        "deviceType" to deviceContextData.deviceType,
+                        "deviceYearClass" to deviceContextData.deviceYearClass,
+                        "isDevice" to deviceContextData.isDevice,
+                        "manufacturer" to deviceContextData.manufacturer,
+                        "modelName" to deviceContextData.modelName,
+                        "osBuildId" to deviceContextData.osBuildId,
+                        "osInternalBuildId" to deviceContextData.osInternalBuildId,
+                        "osName" to deviceContextData.osName,
+                        "osVersion" to deviceContextData.osVersion,
+                        "modelId" to deviceContextData.androidId
+                    )
+                ))).toString()
         }
 
-        newContextData?.let {
-            contextData = it
-            refreshContextData(it)
-        }
-    }
-
-    private fun injectContextData(contextData: AccrueContextData) {
-        val script = generateContextDataScript(contextData)
-        evaluateJavascript(script, null)
-    }
-
-    private fun refreshContextData(contextData: AccrueContextData) {
-        val script = generateContextDataScript(contextData)
-        evaluateJavascript(script, null)
-    }
-
-    private class WebAppInterface(private val onAction: Map<AccrueAction, () -> Unit> = emptyMap()) {
         @JavascriptInterface
         fun postMessage(message: String) {
             try {
                 val jsonObject = JSONObject(message)
                 val type = jsonObject.optString("action")
-                
+
                 when (type) {
                     "AccrueWallet::${AccrueAction.SignInButtonClicked}" -> onAction[AccrueAction.SignInButtonClicked]?.invoke()
                     "AccrueWallet::${AccrueAction.RegisterButtonClicked}" -> onAction[AccrueAction.RegisterButtonClicked]?.invoke()
@@ -83,9 +108,12 @@ class AccrueWebView @JvmOverloads constructor(
 
     // for links that open in new window to work
     private class AccrueWebViewClient : WebViewClient() {
+        val TAG: String = "AccrueWebViewClient"
+
         override fun shouldOverrideUrlLoading(view: WebView, request: WebResourceRequest): Boolean {
             val url = request.url.toString()
             if (url.startsWith("http://") || url.startsWith("https://")) {
+                Log.i(TAG, "Opening link: $url")
                 view.context.startActivity(
                     Intent(Intent.ACTION_VIEW, Uri.parse(url))
                 )
@@ -95,47 +123,27 @@ class AccrueWebView @JvmOverloads constructor(
         }
     }
 
-    private fun generateContextDataScript(contextData: AccrueContextData): String {
-        val userData = contextData.userData
-        val settingsData = contextData.settingsData
-        val deviceContextData = AccrueDeviceContextData()
+    private class AccrueWebChromeClient: WebChromeClient() {
+        val TAG: String = "AccrueWebChromeClient"
 
-        return """
-            (function() {
-                window["${AccrueWebEvents.eventHandlerName}"] = {
-                    "contextData": {
-                        "userData": {
-                            "referenceId": ${userData.referenceId?.let { "\"$it\"" } ?: "null"},
-                            "email": ${userData.email?.let { "\"$it\"" } ?: "null"},
-                            "phoneNumber": ${userData.phoneNumber?.let { "\"$it\"" } ?: "null"}
-                        },
-                        "settingsData": {
-                            "shouldInheritAuthentication": ${settingsData.shouldInheritAuthentication}
-                        },
-                        "deviceData": {
-                            "sdk": "${deviceContextData.sdk}",
-                            "sdkVersion": "${deviceContextData.sdkVersion ?: "null"}",
-                            "brand": "${deviceContextData.brand ?: "null"}",
-                            "deviceName": "${deviceContextData.deviceName ?: "null"}",
-                            "deviceType": "${deviceContextData.deviceType ?: ""}",
-                            "deviceYearClass": "${deviceContextData.deviceYearClass ?: 0}",
-                            "isDevice": ${deviceContextData.isDevice},
-                            "manufacturer": "${deviceContextData.manufacturer ?: "null"}",
-                            "modelName": "${deviceContextData.modelName ?: "null"}",
-                            "osBuildId": "${deviceContextData.osBuildId ?: "null"}",
-                            "osInternalBuildId": "${deviceContextData.osInternalBuildId ?: "null"}",
-                            "osName": "${deviceContextData.osName ?: "null"}",
-                            "osVersion": "${deviceContextData.osVersion ?: "null"}",
-                            "modelId": "${deviceContextData.androidId ?: "null"}"
-                        }
-                    }
-                };
-                // Notify the web page that contextData has been updated
-                var event = new CustomEvent("${AccrueWebEvents.accrueWalletContextChangedEventKey}", {
-                    detail: window["${AccrueWebEvents.eventHandlerName}"].contextData
-                });
-                window.dispatchEvent(event);
-            })();
-        """.trimIndent()
+        override fun onCreateWindow(view: WebView?, isDialog: Boolean, isUserGesture: Boolean, resultMsg: Message?): Boolean {
+            val href = view?.handler?.obtainMessage()
+            Log.i(TAG, "Opening link in a new window: $href")
+            view?.requestFocusNodeHref(href)
+            val url = href?.data?.getString("url") ?: return false
+
+            val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url))
+            view?.context?.startActivity(intent)
+            return true
+        }
+
+        override fun onConsoleMessage(consoleMessage: ConsoleMessage): Boolean {
+            Log.d(
+                "WebView", consoleMessage.message() + " -- From line "
+                        + consoleMessage.lineNumber() + " of " + consoleMessage.sourceId()
+            )
+            return true
+        }
     }
+
 }

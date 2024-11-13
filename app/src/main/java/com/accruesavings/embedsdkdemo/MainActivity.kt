@@ -38,9 +38,9 @@ class MainActivity : AppCompatActivity() {
             val redirectionToken = redirectTokenInput.text.toString()
 
             val userData = AccrueUserData(
-                referenceId = "<your_unique_user_id>",
-                phoneNumber = "<users_phone_number>",
-                email = "<users_email>"
+                referenceId = "123",
+                phoneNumber = "+12225552222",
+                email = "very-low-risk@test.com"
             )
 
             val settingsData = AccrueSettingsData(
@@ -50,9 +50,10 @@ class MainActivity : AppCompatActivity() {
             val contextData = AccrueContextData(userData, settingsData)
 
             val fragment = AccrueWallet.newInstance(
+                url = "http://localhost:5173/webview",
                 contextData = contextData,
                 redirectionToken = redirectionToken,
-                isSandbox = true,
+//                isSandbox = true,
                 merchantId = merchantId,
                 onAction = mapOf(
                     AccrueAction.SignInButtonClicked to {

@@ -16,6 +16,7 @@ object AccrueWebEvents {
 }
 
 object SampleData {
-    const val merchantId = "7ac10172-c0bd-4009-a85a-972d33efbd04"
-    const val redirectionToken = "redirection-token"
+//    const val merchantId = "7ac10172-c0bd-4009-a85a-972d33efbd04"
+    const val merchantId = "49c7cce7-2df7-4213-9d31-887f295fee10"
+    const val redirectionToken = ""
 }

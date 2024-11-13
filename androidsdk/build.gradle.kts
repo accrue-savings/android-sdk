@@ -73,7 +73,7 @@ publishing {
         register<MavenPublication>("release") {
             groupId = "com.accruesavings"
             artifactId = "androidsdk"
-            version = "v1.0.1"
+            version = "v1.0.3"
 
             afterEvaluate {
                 from(components["release"])

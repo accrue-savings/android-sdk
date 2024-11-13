@@ -28,6 +28,10 @@ android {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
     }
+
+    kotlinOptions {
+        jvmTarget = "17"
+    }
 }
 
 
@@ -39,7 +43,7 @@ dependencies {
     implementation(libs.androidx.constraintlayout)
     implementation(project(":androidsdk"))
 //    implementation("com.github.accrue-savings:android-sdk:v1.0.0")
-//    implementation("com.accruesavings:androidsdk:v1.0.1")
+//    implementation("com.accruesavings:androidsdk:v1.0.2")
     implementation(libs.androidx.ui.android)
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)

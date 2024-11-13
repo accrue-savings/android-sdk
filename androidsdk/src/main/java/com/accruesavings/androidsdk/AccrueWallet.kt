@@ -1,11 +1,13 @@
 package com.accruesavings.androidsdk
 
 import android.net.Uri
+import android.os.Build
 import android.os.Bundle
 import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.webkit.WebView
 import androidx.fragment.app.Fragment
 
 class AccrueWallet : Fragment() {
@@ -22,11 +24,12 @@ class AccrueWallet : Fragment() {
         fun newInstance(
             merchantId: String,
             redirectionToken: String? = null,
-            isSandbox: Boolean,
+            isSandbox: Boolean = false,
             url: String? = null,
             contextData: AccrueContextData = AccrueContextData(),
             onAction: Map<AccrueAction, () -> Unit> = emptyMap()
         ): AccrueWallet {
+            WebView.setWebContentsDebuggingEnabled(true);
             return AccrueWallet().apply {
                 this.merchantId = merchantId
                 this.redirectionToken = redirectionToken
