@@ -60,7 +60,7 @@ class AccrueWebView @JvmOverloads constructor(
             val userData = contextData.userData
             val settingsData = contextData.settingsData
             val deviceContextData = AccrueDeviceContextData()
-            return JSONObject(mapOf(
+            val finalContextData = JSONObject(mapOf(
                 "contextData" to mapOf(
                     "userData" to mapOf(
                         "referenceId" to userData.referenceId,
@@ -76,7 +76,6 @@ class AccrueWebView @JvmOverloads constructor(
                         "brand" to deviceContextData.brand,
                         "deviceName" to deviceContextData.deviceName,
                         "deviceType" to deviceContextData.deviceType,
-                        "deviceYearClass" to deviceContextData.deviceYearClass,
                         "isDevice" to deviceContextData.isDevice,
                         "manufacturer" to deviceContextData.manufacturer,
                         "modelName" to deviceContextData.modelName,
@@ -84,9 +83,10 @@ class AccrueWebView @JvmOverloads constructor(
                         "osInternalBuildId" to deviceContextData.osInternalBuildId,
                         "osName" to deviceContextData.osName,
                         "osVersion" to deviceContextData.osVersion,
-                        "modelId" to deviceContextData.androidId
                     )
                 ))).toString()
+            Log.d("WebView", finalContextData)
+            return finalContextData;
         }
 
         @JavascriptInterface

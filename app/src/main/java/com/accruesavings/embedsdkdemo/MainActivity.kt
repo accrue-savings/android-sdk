@@ -38,8 +38,8 @@ class MainActivity : AppCompatActivity() {
             val redirectionToken = redirectTokenInput.text.toString()
 
             val userData = AccrueUserData(
-                referenceId = "123",
-                phoneNumber = "+12225552222",
+                referenceId = "1233",
+                phoneNumber = "+12225552223",
                 email = "very-low-risk@test.com"
             )
 

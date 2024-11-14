@@ -1,5 +1,6 @@
 package com.accruesavings.androidsdk
 
+import android.os.Build
 import android.os.Parcel
 import android.os.Parcelable
 import androidx.compose.runtime.mutableStateOf
@@ -103,35 +104,31 @@ data class AccrueSettingsData(
 
 data class AccrueDeviceContextData(
     val sdk: String = "Android",
-    val sdkVersion: String? = null,
-    val brand: String? = null,
-    val deviceName: String? = null,
-    val deviceType: String? = null,
-    val deviceYearClass: Double? = 0.0,
+    val sdkVersion: String? = "v1.0.4",
+    val brand: String? = Build.BRAND,
+    val deviceName: String? = Build.DEVICE,
+    val deviceType: String? = Build.PRODUCT,
     val isDevice: Boolean = true,
-    val manufacturer: String? = null,
-    val modelName: String? = null,
-    val osBuildId: String? = null,
-    val osInternalBuildId: String? = null,
-    val osName: String? = null,
-    val osVersion: String? = null,
-    val androidId: String? = null
+    val manufacturer: String? = Build.MANUFACTURER,
+    val modelName: String? = Build.MODEL,
+    val osBuildId: String? = Build.ID,
+    val osInternalBuildId: String? = Build.DISPLAY,
+    val osName: String? = "Android",
+    val osVersion: String? = Build.VERSION.RELEASE,
 ) : Parcelable {
     constructor(parcel: Parcel) : this(
         sdk = parcel.readString() ?: "Android",
-        sdkVersion = parcel.readString(),
-        brand = parcel.readString(),
-        deviceName = parcel.readString(),
-        deviceType = parcel.readString(),
-        deviceYearClass = parcel.readValue(Double::class.java.classLoader) as? Double,
-        isDevice = parcel.readByte() != 0.toByte(),
-        manufacturer = parcel.readString(),
-        modelName = parcel.readString(),
-        osBuildId = parcel.readString(),
-        osInternalBuildId = parcel.readString(),
-        osName = parcel.readString(),
-        osVersion = parcel.readString(),
-        androidId = parcel.readString()
+        sdkVersion = parcel.readString() ?: "v1.0.4",
+        brand = parcel.readString() ?: Build.BRAND,
+        deviceName = parcel.readString() ?: Build.DEVICE,
+        deviceType = parcel.readString() ?: Build.PRODUCT,
+        isDevice = true,
+        manufacturer = parcel.readString() ?: Build.MANUFACTURER,
+        modelName = parcel.readString() ?: Build.MODEL,
+        osBuildId = parcel.readString() ?: Build.ID,
+        osInternalBuildId = parcel.readString() ?: Build.DISPLAY,
+        osName = "Android",
+        osVersion = parcel.readString() ?: Build.VERSION.RELEASE,
     )
 
     override fun writeToParcel(parcel: Parcel, flags: Int) {
@@ -140,7 +137,6 @@ data class AccrueDeviceContextData(
         parcel.writeString(brand)
         parcel.writeString(deviceName)
         parcel.writeString(deviceType)
-        parcel.writeValue(deviceYearClass)
         parcel.writeByte(if (isDevice) 1 else 0)
         parcel.writeString(manufacturer)
         parcel.writeString(modelName)
@@ -148,7 +144,6 @@ data class AccrueDeviceContextData(
         parcel.writeString(osInternalBuildId)
         parcel.writeString(osName)
         parcel.writeString(osVersion)
-        parcel.writeString(androidId)
     }
 
     override fun describeContents(): Int = 0

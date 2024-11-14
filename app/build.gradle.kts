@@ -42,7 +42,7 @@ dependencies {
     implementation(libs.androidx.activity)
     implementation(libs.androidx.constraintlayout)
     implementation(project(":androidsdk"))
-//    implementation("com.accruesavings:androidsdk:v1.0.3")
+//    implementation("com.accruesavings:androidsdk:v1.0.4")
     implementation(libs.androidx.ui.android)
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
