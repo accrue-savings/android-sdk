@@ -92,13 +92,14 @@ class AccrueWebView @JvmOverloads constructor(
         @JavascriptInterface
         fun postMessage(message: String) {
             try {
+                Log.i("AccrueWebView", "FFW message received: $message")
                 val jsonObject = JSONObject(message)
-                val type = jsonObject.optString("action")
+                val key = jsonObject.optString("key")
 
-                when (type) {
+                when (key) {
                     "AccrueWallet::${AccrueAction.SignInButtonClicked}" -> onAction[AccrueAction.SignInButtonClicked]?.invoke()
                     "AccrueWallet::${AccrueAction.RegisterButtonClicked}" -> onAction[AccrueAction.RegisterButtonClicked]?.invoke()
-                    else -> Log.w("AccrueWebView", "Unknown message type: $type")
+                    else -> Log.w("AccrueWebView", "Unknown message type: $key")
                 }
             } catch (e: JSONException) {
                 Log.e("AccrueWebView", "Error parsing JSON message: ${e.message}")

@@ -1,6 +1,7 @@
 package com.accruesavings.embedsdkdemo
 
 import android.os.Bundle
+import android.util.Log
 import android.widget.Button
 import android.widget.EditText
 import androidx.activity.enableEdgeToEdge
@@ -16,6 +17,7 @@ import com.accruesavings.androidsdk.SampleData
 class MainActivity : AppCompatActivity() {
     private lateinit var merchantIdInput: EditText
     private lateinit var redirectTokenInput: EditText
+    private lateinit var phoneNumberInput: EditText
     private lateinit var reloadButton: Button
     private lateinit var sampleDatabutton: Button
 
@@ -26,6 +28,7 @@ class MainActivity : AppCompatActivity() {
 
         merchantIdInput = findViewById(R.id.merchant_id_input)
         redirectTokenInput = findViewById(R.id.redirect_token_input)
+        phoneNumberInput = findViewById(R.id.phone_number_input)
         reloadButton = findViewById(R.id.reload_button)
         sampleDatabutton = findViewById(R.id.use_sample_values_button)
 
@@ -36,11 +39,12 @@ class MainActivity : AppCompatActivity() {
         reloadButton.setOnClickListener {
             val merchantId = merchantIdInput.text.toString()
             val redirectionToken = redirectTokenInput.text.toString()
+            val phoneNumber = phoneNumberInput.text.toString()
 
             val userData = AccrueUserData(
-                referenceId = "1233",
-                phoneNumber = "+12225552223",
-                email = "very-low-risk@test.com"
+                phoneNumber,
+                null,
+                null
             )
 
             val settingsData = AccrueSettingsData(
@@ -57,10 +61,10 @@ class MainActivity : AppCompatActivity() {
                 merchantId = merchantId,
                 onAction = mapOf(
                     AccrueAction.SignInButtonClicked to {
-                        // Handle sign in button click
+                        Log.i("AccrueWebView", "SIGN IN BUTTON HANDLER ACTIVATED")
                     },
                     AccrueAction.RegisterButtonClicked to {
-                        // Handle register button click
+                        Log.i("AccrueWebView", "REGISTER BUTTON HANDLER ACTIVATED")
                     }
                 )
             )

@@ -36,6 +36,14 @@
             android:hint="@string/redirect_token_lagel"
             android:inputType="text"/>
 
+        <EditText
+            android:id="@+id/phone_number_input"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="Phone Number"
+            android:inputType="phone"
+            android:layout_marginHorizontal="16dp"
+            android:layout_marginTop="8dp" />
 
         <LinearLayout
             android:layout_width="match_parent"
