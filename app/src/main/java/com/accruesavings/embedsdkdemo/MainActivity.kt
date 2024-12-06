@@ -18,8 +18,29 @@ class MainActivity : AppCompatActivity() {
     private lateinit var merchantIdInput: EditText
     private lateinit var redirectTokenInput: EditText
     private lateinit var phoneNumberInput: EditText
+    private lateinit var referenceIdInput: EditText
     private lateinit var reloadButton: Button
     private lateinit var sampleDatabutton: Button
+    private lateinit var updateContextButton: Button
+    private lateinit var accrueWallet: AccrueWallet
+
+    private fun getContext(): AccrueContextData {
+        val phoneNumber = phoneNumberInput.text.toString()
+        val referenceId = referenceIdInput.text.toString()
+        Log.i("AccrueWebView", "Phone number $phoneNumber")
+        val userData = AccrueUserData(
+            referenceId.ifEmpty { null },
+            null,
+            phoneNumber.ifEmpty { null }
+        )
+
+        val settingsData = AccrueSettingsData(
+            shouldInheritAuthentication = true
+        )
+
+        val contextData = AccrueContextData(userData, settingsData)
+        return contextData
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -29,31 +50,26 @@ class MainActivity : AppCompatActivity() {
         merchantIdInput = findViewById(R.id.merchant_id_input)
         redirectTokenInput = findViewById(R.id.redirect_token_input)
         phoneNumberInput = findViewById(R.id.phone_number_input)
+        referenceIdInput = findViewById(R.id.reference_id_input)
         reloadButton = findViewById(R.id.reload_button)
         sampleDatabutton = findViewById(R.id.use_sample_values_button)
+        updateContextButton = findViewById(R.id.update_context_button)
 
         sampleDatabutton.setOnClickListener {
             merchantIdInput.setText(SampleData.merchantId)
         }
 
+        updateContextButton.setOnClickListener {
+            accrueWallet.updateContextData(getContext())
+        }
+
         reloadButton.setOnClickListener {
             val merchantId = merchantIdInput.text.toString()
             val redirectionToken = redirectTokenInput.text.toString()
-            val phoneNumber = phoneNumberInput.text.toString()
 
-            val userData = AccrueUserData(
-                phoneNumber,
-                null,
-                null
-            )
+            val contextData = getContext()
 
-            val settingsData = AccrueSettingsData(
-                shouldInheritAuthentication = true
-            )
-
-            val contextData = AccrueContextData(userData, settingsData)
-
-            val fragment = AccrueWallet.newInstance(
+            accrueWallet = AccrueWallet.newInstance(
 //                url = "http://localhost:5173/webview",
                 contextData = contextData,
                 redirectionToken = redirectionToken,
@@ -70,7 +86,7 @@ class MainActivity : AppCompatActivity() {
             )
 
             supportFragmentManager.beginTransaction()
-                .replace(R.id.fragment_container, fragment)
+                .replace(R.id.fragment_container, accrueWallet)
                 .commit()
         }
     }

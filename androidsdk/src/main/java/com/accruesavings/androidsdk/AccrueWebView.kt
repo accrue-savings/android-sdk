@@ -14,6 +14,40 @@ import android.webkit.WebViewClient
 import org.json.JSONException
 import org.json.JSONObject
 
+fun contextToJson(contextData: AccrueContextData?): String {
+    if(contextData === null) {
+        return "";
+    }
+    val userData = contextData.userData
+    val settingsData = contextData.settingsData
+    val deviceContextData = AccrueDeviceContextData()
+    val finalContextData = JSONObject(mapOf(
+        "contextData" to mapOf(
+            "userData" to mapOf(
+                "referenceId" to userData.referenceId,
+                "email" to userData.email,
+                "phoneNumber" to userData.phoneNumber
+            ),
+            "settingsData" to mapOf(
+                "shouldInheritAuthentication" to settingsData.shouldInheritAuthentication
+            ),
+            "deviceData" to mapOf(
+                "sdk" to deviceContextData.sdk,
+                "sdkVersion" to deviceContextData.sdkVersion,
+                "brand" to deviceContextData.brand,
+                "deviceName" to deviceContextData.deviceName,
+                "deviceType" to deviceContextData.deviceType,
+                "isDevice" to deviceContextData.isDevice,
+                "manufacturer" to deviceContextData.manufacturer,
+                "modelName" to deviceContextData.modelName,
+                "osBuildId" to deviceContextData.osBuildId,
+                "osInternalBuildId" to deviceContextData.osInternalBuildId,
+                "osName" to deviceContextData.osName,
+                "osVersion" to deviceContextData.osVersion,
+            )
+        ))).toString()
+    return finalContextData;
+}
 
 class AccrueWebView @JvmOverloads constructor(
     context: Context,
@@ -21,6 +55,8 @@ class AccrueWebView @JvmOverloads constructor(
     private var contextData: AccrueContextData? = null,
     private var onAction: Map<AccrueAction, () -> Unit> = emptyMap()
 ) : WebView(context) {
+
+    private var webAppInterface: WebAppInterface? = null
 
     init {
         setupWebView()
@@ -40,13 +76,23 @@ class AccrueWebView @JvmOverloads constructor(
             }
         }
         // Add JavaScript interface and context data
-        addJavascriptInterface(WebAppInterface(this.onAction, contextData), AccrueWebEvents.eventHandlerName)
+        webAppInterface = WebAppInterface(this.onAction, contextData)
+        addJavascriptInterface(webAppInterface!!, AccrueWebEvents.eventHandlerName)
 
         // Load URL
         loadUrl(url)
     }
 
-    private class WebAppInterface(private val onAction: Map<AccrueAction, () -> Unit> = emptyMap(), private val contextData: AccrueContextData?) {
+    private class WebAppInterface(
+        private val onAction: Map<AccrueAction, () -> Unit> = emptyMap(),
+        private var _contextData: AccrueContextData?
+    ) {
+        var contextData: AccrueContextData?
+            get() = _contextData
+            set(value) {
+                _contextData = value
+            }
+
         @JavascriptInterface
         fun getParentType(): String {
             return "android"
@@ -54,39 +100,7 @@ class AccrueWebView @JvmOverloads constructor(
 
         @JavascriptInterface
         fun getContextData(): String {
-            if(contextData === null) {
-                return "";
-            }
-            val userData = contextData.userData
-            val settingsData = contextData.settingsData
-            val deviceContextData = AccrueDeviceContextData()
-            val finalContextData = JSONObject(mapOf(
-                "contextData" to mapOf(
-                    "userData" to mapOf(
-                        "referenceId" to userData.referenceId,
-                        "email" to userData.email,
-                        "phoneNumber" to userData.phoneNumber
-                    ),
-                    "settingsData" to mapOf(
-                        "shouldInheritAuthentication" to settingsData.shouldInheritAuthentication
-                    ),
-                    "deviceData" to mapOf(
-                        "sdk" to deviceContextData.sdk,
-                        "sdkVersion" to deviceContextData.sdkVersion,
-                        "brand" to deviceContextData.brand,
-                        "deviceName" to deviceContextData.deviceName,
-                        "deviceType" to deviceContextData.deviceType,
-                        "isDevice" to deviceContextData.isDevice,
-                        "manufacturer" to deviceContextData.manufacturer,
-                        "modelName" to deviceContextData.modelName,
-                        "osBuildId" to deviceContextData.osBuildId,
-                        "osInternalBuildId" to deviceContextData.osInternalBuildId,
-                        "osName" to deviceContextData.osName,
-                        "osVersion" to deviceContextData.osVersion,
-                    )
-                ))).toString()
-            Log.d("WebView", finalContextData)
-            return finalContextData;
+            return contextToJson(contextData)
         }
 
         @JavascriptInterface
@@ -113,7 +127,7 @@ class AccrueWebView @JvmOverloads constructor(
 
         override fun shouldOverrideUrlLoading(view: WebView, request: WebResourceRequest): Boolean {
             val url = request.url.toString()
-            if (url.startsWith("http://") || url.startsWith("https://")) {
+            if ((url.startsWith("http://") && !url.startsWith("http://localhost")) || url.startsWith("https://")) {
                 Log.i(TAG, "Opening link: $url")
                 view.context.startActivity(
                     Intent(Intent.ACTION_VIEW, Uri.parse(url))
@@ -145,6 +159,20 @@ class AccrueWebView @JvmOverloads constructor(
             )
             return true
         }
+    }
+
+   fun updateContextData(newContextData: AccrueContextData) {
+        // Update the stored contextData
+        this.contextData = newContextData
+        
+        // Update the JavaScript interface
+        this.webAppInterface?.contextData = newContextData
+
+        // Send the update to the WebView
+        evaluateJavascript("""
+            var event = new CustomEvent("${AccrueWebEvents.accrueWalletContextChangedEventKey}", {});
+            window.dispatchEvent(event);
+        """.trimIndent(), null)
     }
 
 }

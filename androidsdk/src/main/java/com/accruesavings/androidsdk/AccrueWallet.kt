@@ -18,6 +18,12 @@ class AccrueWallet : Fragment() {
     private var url: String? = null
     private var onAction: Map<AccrueAction, () -> Unit> = emptyMap()
     private var contextData: AccrueContextData = AccrueContextData()
+        set(value) {
+            field = value
+            if (::webView.isInitialized) {
+                webView.updateContextData(value)
+            }
+        }
     private lateinit var webView: AccrueWebView
 
     companion object {
@@ -76,5 +82,9 @@ class AccrueWallet : Fragment() {
         }
 
         return uri.build().toString()
+    }
+
+    fun updateContextData(newContextData: AccrueContextData) {
+        contextData = newContextData
     }
 }
