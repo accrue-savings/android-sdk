@@ -65,6 +65,7 @@ class AccrueWebView @JvmOverloads constructor(
     }
 
     private fun setupWebView() {
+        overScrollMode = OVER_SCROLL_NEVER
         settings.javaScriptEnabled = true
         // local storage does not work without it
         settings.domStorageEnabled = true
