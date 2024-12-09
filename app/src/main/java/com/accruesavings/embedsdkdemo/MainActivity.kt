@@ -31,7 +31,8 @@ class MainActivity : AppCompatActivity() {
         val userData = AccrueUserData(
             referenceId.ifEmpty { null },
             null,
-            phoneNumber.ifEmpty { null }
+            phoneNumber.ifEmpty { null },
+            mapOf("firstName" to "Sasa", "lastName" to "Sijak")
         )
 
         val settingsData = AccrueSettingsData(

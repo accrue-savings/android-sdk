@@ -26,7 +26,8 @@ fun contextToJson(contextData: AccrueContextData?): String {
             "userData" to mapOf(
                 "referenceId" to userData.referenceId,
                 "email" to userData.email,
-                "phoneNumber" to userData.phoneNumber
+                "phoneNumber" to userData.phoneNumber,
+                "additionalData" to userData.additionalData
             ),
             "settingsData" to mapOf(
                 "shouldInheritAuthentication" to settingsData.shouldInheritAuthentication
@@ -46,6 +47,7 @@ fun contextToJson(contextData: AccrueContextData?): String {
                 "osVersion" to deviceContextData.osVersion,
             )
         ))).toString()
+    Log.i("AccrueWebView", "Constructed accrue context data $finalContextData")
     return finalContextData;
 }
 
