@@ -86,4 +86,8 @@ class AccrueWallet : Fragment() {
     fun updateContextData(newContextData: AccrueContextData) {
         contextData = newContextData
     }
+
+    fun handleEvent(eventName: String, data: String) {
+        webView.handleEvent(eventName, data)
+    }
 }

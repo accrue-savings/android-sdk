@@ -13,6 +13,7 @@ object AccrueWebEvents {
     const val eventHandlerName: String = "AccrueWallet"
     const val accrueWalletSignInPerformedMessageKey: String = "AccrueWallet::SignInPerformed"
     const val accrueWalletContextChangedEventKey: String = "AccrueWallet::ContextChanged"
+    const val accrueWalletParentAppEventKey: String = "AccrueWallet::ParentAppEvent"
 }
 
 object SampleData {

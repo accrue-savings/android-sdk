@@ -1,5 +1,6 @@
 package com.accruesavings.androidsdk
 
+import android.content.ActivityNotFoundException
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
@@ -130,13 +131,30 @@ class AccrueWebView @JvmOverloads constructor(
 
         override fun shouldOverrideUrlLoading(view: WebView, request: WebResourceRequest): Boolean {
             val url = request.url.toString()
-            if ((url.startsWith("http://") && !url.startsWith("http://localhost")) || url.startsWith("https://")) {
-                Log.i(TAG, "Opening link: $url")
-                view.context.startActivity(
-                    Intent(Intent.ACTION_VIEW, Uri.parse(url))
-                )
-                return true
+
+            // Check if the URL is the same as the current one (e.g., for reload)
+            if (url == view.url) {
+                Log.i(TAG, "Reloading the same URL: $url")
+                return false // Allow the WebView to handle reloading the same URL
             }
+
+            // Allow localhost and local file URLs
+            if (url.startsWith("http://localhost") || url.startsWith("file://")) {
+                Log.i(TAG, "Handling local URL: $url")
+                return false // Let the WebView handle local URLs
+            }
+
+            // Handle external links
+            if (url.startsWith("http://") || url.startsWith("https://") || url.startsWith("mailto:")) {
+                Log.i(TAG, "Opening external link: $url")
+                try {
+                    view.context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url)))
+                } catch (e: ActivityNotFoundException) {
+                    Log.e(TAG, "No application can handle this request. URL: $url", e)
+                }
+                return true // Prevent the WebView from loading external links
+            }
+
             return false
         }
     }
@@ -174,6 +192,18 @@ class AccrueWebView @JvmOverloads constructor(
         // Send the update to the WebView
         evaluateJavascript("""
             var event = new CustomEvent("${AccrueWebEvents.accrueWalletContextChangedEventKey}", {});
+            window.dispatchEvent(event);
+        """.trimIndent(), null)
+    }
+
+    fun handleEvent(eventName: String, data: String) {
+        evaluateJavascript("""
+            var event = new CustomEvent("${AccrueWebEvents.accrueWalletParentAppEventKey}", {
+                detail: {
+                    name: $eventName,
+                    data: $data
+                }
+            });
             window.dispatchEvent(event);
         """.trimIndent(), null)
     }
