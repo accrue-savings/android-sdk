@@ -52,6 +52,12 @@
             android:hint="Reference ID"
             android:inputType="text" />
 
+        <Button
+            android:id="@+id/go_to_home_button"
+            android:layout_width="323dp"
+            android:layout_height="wrap_content"
+            android:text="Go To Home" />
+
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -70,19 +76,23 @@
                 android:layout_height="wrap_content"
                 android:layout_marginTop="16dp"
                 android:text="@string/use_sample_values_button" />
+
             <Button
                 android:id="@+id/update_context_button"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="16dp"
                 android:text="@string/update_context_button" />
+
         </LinearLayout>
 
         <FrameLayout
             android:id="@+id/fragment_container"
-            android:layout_width="match_parent"
-            android:layout_height="0dp"
-            android:layout_weight="1"/>
+            android:layout_width="384dp"
+            android:layout_height="278dp"
+            android:layout_weight="1">
+
+        </FrameLayout>
     </LinearLayout>
 
 </androidx.constraintlayout.widget.ConstraintLayout>

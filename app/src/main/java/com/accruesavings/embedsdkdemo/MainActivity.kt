@@ -22,6 +22,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var reloadButton: Button
     private lateinit var sampleDatabutton: Button
     private lateinit var updateContextButton: Button
+    private lateinit var goToHomeButton: Button
     private lateinit var accrueWallet: AccrueWallet
 
     private fun getContext(): AccrueContextData {
@@ -55,6 +56,7 @@ class MainActivity : AppCompatActivity() {
         reloadButton = findViewById(R.id.reload_button)
         sampleDatabutton = findViewById(R.id.use_sample_values_button)
         updateContextButton = findViewById(R.id.update_context_button)
+        goToHomeButton = findViewById(R.id.go_to_home_button)
 
         sampleDatabutton.setOnClickListener {
             merchantIdInput.setText(SampleData.merchantId)
@@ -62,6 +64,10 @@ class MainActivity : AppCompatActivity() {
 
         updateContextButton.setOnClickListener {
             accrueWallet.updateContextData(getContext())
+        }
+
+        goToHomeButton.setOnClickListener {
+            accrueWallet.handleEvent("AccrueTabPressed", "")
         }
 
         reloadButton.setOnClickListener {
