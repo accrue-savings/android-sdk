@@ -197,14 +197,15 @@ class AccrueWebView @JvmOverloads constructor(
     }
 
     fun handleEvent(eventName: String, data: String) {
+        val eventMap = mapOf(
+            "AccrueTabPressed" to "__GO_TO_HOME_SCREEN"
+        )
+        val mappedEventName = eventMap[eventName] ?: eventName
+
         evaluateJavascript("""
-            var event = new CustomEvent("${AccrueWebEvents.accrueWalletParentAppEventKey}", {
-                detail: {
-                    name: $eventName,
-                    data: $data
-                }
-            });
-            window.dispatchEvent(event);
+            if (typeof window !== "undefined" && typeof window?.["$mappedEventName"] === "function") {
+                window?.["$mappedEventName"]?.($data);
+            }
         """.trimIndent(), null)
     }
 
