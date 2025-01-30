@@ -9,7 +9,7 @@ plugins {
 
 android {
     group = "com.accruesavings.androidsdk"
-    version = "v1.0.11"
+    version = "v1.0.12"
     namespace = "com.accruesavings.androidsdk"
     compileSdk = 34
 
@@ -62,6 +62,7 @@ dependencies {
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
+    implementation("androidx.browser:browser:1.5.0")
 }
 
 
@@ -73,7 +74,7 @@ publishing {
         register<MavenPublication>("release") {
             groupId = "com.accruesavings"
             artifactId = "androidsdk"
-            version = "v1.0.11"
+            version = "v1.0.12"
 
             afterEvaluate {
                 from(components["release"])
