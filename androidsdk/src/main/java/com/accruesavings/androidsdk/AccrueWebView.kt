@@ -4,6 +4,7 @@ import android.content.ActivityNotFoundException
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
+import android.os.Bundle
 import android.os.Message
 import android.util.Log
 import android.webkit.ConsoleMessage
@@ -12,8 +13,10 @@ import android.webkit.WebChromeClient
 import android.webkit.WebResourceRequest
 import android.webkit.WebView
 import android.webkit.WebViewClient
+import androidx.appcompat.app.AppCompatActivity
 import org.json.JSONException
 import org.json.JSONObject
+import androidx.browser.customtabs.CustomTabsIntent
 
 fun contextToJson(contextData: AccrueContextData?): String {
     if(contextData === null) {
@@ -144,20 +147,48 @@ class AccrueWebView @JvmOverloads constructor(
                 return false // Let the WebView handle local URLs
             }
 
-            // Handle external links
+            // Handle external links using Chrome Custom Tabs
             if (url.startsWith("http://") || url.startsWith("https://") || url.startsWith("mailto:")) {
-                Log.i(TAG, "Opening external link: $url")
-                try {
-                    view.context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url)))
-                } catch (e: ActivityNotFoundException) {
-                    Log.e(TAG, "No application can handle this request. URL: $url", e)
-                }
-                return true // Prevent the WebView from loading external links
+                Log.i(TAG, "Opening external link in in-app browser: $url")
+                openInAppBrowser(view.context, url)
+                return true // Prevent WebView from handling external links
             }
 
             return false
         }
+        private fun openInAppBrowser(context: Context, url: String) {
+            try {
+                val customTabsIntent = CustomTabsIntent.Builder()
+                    .setShowTitle(true)
+                    .build()
+                customTabsIntent.launchUrl(context, Uri.parse(url))
+            } catch (e: ActivityNotFoundException) {
+                Log.e(TAG, "No browser available to handle the request. Opening with WebView fallback.", e)
+    
+                // Fallback: Open inside an internal WebView
+                val intent = Intent(context, InAppBrowserActivity::class.java)
+                intent.putExtra("url", url)
+                context.startActivity(intent)
+            }
+        }
     }
+
+    class InAppBrowserActivity : AppCompatActivity() {
+        override fun onCreate(savedInstanceState: Bundle?) {
+            super.onCreate(savedInstanceState)
+    
+            val webView = WebView(this)
+            setContentView(webView)
+    
+            webView.settings.javaScriptEnabled = true
+            webView.settings.domStorageEnabled = true
+            webView.webViewClient = WebViewClient()
+    
+            val url = intent.getStringExtra("url") ?: return
+            webView.loadUrl(url)
+        }
+    }
+    
 
     private class AccrueWebChromeClient: WebChromeClient() {
         val TAG: String = "AccrueWebChromeClient"
