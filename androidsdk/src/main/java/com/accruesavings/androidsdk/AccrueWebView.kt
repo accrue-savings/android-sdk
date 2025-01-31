@@ -159,7 +159,7 @@ class AccrueWebView @JvmOverloads constructor(
         private fun openInAppBrowser(context: Context, url: String) {
             try {
                 val customTabsIntent = CustomTabsIntent.Builder()
-                    .setShowTitle(true)
+                    .setShowTitle(false)
                     .build()
                 customTabsIntent.launchUrl(context, Uri.parse(url))
             } catch (e: ActivityNotFoundException) {
