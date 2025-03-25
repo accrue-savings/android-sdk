@@ -17,6 +17,7 @@ import androidx.appcompat.app.AppCompatActivity
 import org.json.JSONException
 import org.json.JSONObject
 import androidx.browser.customtabs.CustomTabsIntent
+import androidx.core.net.toUri
 
 fun contextToJson(contextData: AccrueContextData?): String {
     if(contextData === null) {
@@ -132,6 +133,17 @@ class AccrueWebView @JvmOverloads constructor(
     private class AccrueWebViewClient : WebViewClient() {
         val TAG: String = "AccrueWebViewClient"
 
+        fun isAppDeepLink(url: String): Boolean {
+            if (url.isBlank()) return false
+
+            return try {
+                val scheme = url.toUri().scheme?.lowercase()
+                scheme != null && scheme !in listOf("http", "https", "mailto", "tel", "ftp", "sms")
+            } catch (e: Exception) {
+                false
+            }
+        }
+
         override fun shouldOverrideUrlLoading(view: WebView, request: WebResourceRequest): Boolean {
             val url = request.url.toString()
 
@@ -147,6 +159,11 @@ class AccrueWebView @JvmOverloads constructor(
                 return false // Let the WebView handle local URLs
             }
 
+            // Handle deeplinks
+            if (isAppDeepLink(url)) {
+                openDeepLink(view.context, url)
+            }
+
             // Handle external links using Chrome Custom Tabs
             if (url.startsWith("http://") || url.startsWith("https://") || url.startsWith("mailto:")) {
                 Log.i(TAG, "Opening external link in in-app browser: $url")
@@ -155,6 +172,16 @@ class AccrueWebView @JvmOverloads constructor(
             }
 
             return false
+        }
+        fun openDeepLink(context: Context, url: String) {
+            try {
+                val intent = Intent(Intent.ACTION_VIEW, url.toUri()).apply {
+                    flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
+                }
+                context.startActivity(intent)
+            } catch (e: ActivityNotFoundException) {
+                Log.e("Deeplink", "No activity found to handle deep link", e)
+            }
         }
         private fun openInAppBrowser(context: Context, url: String) {
             try {

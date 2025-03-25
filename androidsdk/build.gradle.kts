@@ -50,6 +50,7 @@ android {
 
 
 dependencies {
+    implementation(libs.androidx.browser)
     val composeBom = platform("androidx.compose:compose-bom:2024.06.00")
     implementation(composeBom)
     androidTestImplementation(composeBom)
