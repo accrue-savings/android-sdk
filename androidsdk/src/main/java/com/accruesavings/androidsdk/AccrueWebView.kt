@@ -162,6 +162,7 @@ class AccrueWebView @JvmOverloads constructor(
             // Handle deeplinks
             if (isAppDeepLink(url)) {
                 openDeepLink(view.context, url)
+                return true // Prevent WebView from handling deeplinks
             }
 
             // Handle external links using Chrome Custom Tabs
