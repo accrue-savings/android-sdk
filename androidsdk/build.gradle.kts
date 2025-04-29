@@ -60,6 +60,11 @@ dependencies {
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.appcompat)
     implementation(libs.material)
+    // Google Pay API for Push Provisioning
+    implementation("com.google.android.gms:play-services-pay:16.1.0")
+    implementation("com.google.android.gms:play-services-wallet:19.2.1")
+    // Google Sign-In for wallet account ID
+    implementation("com.google.android.gms:play-services-auth:20.7.0")
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)

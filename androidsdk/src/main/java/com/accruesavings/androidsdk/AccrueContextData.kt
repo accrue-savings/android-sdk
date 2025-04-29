@@ -20,7 +20,7 @@ data class AccrueSettingsData(
 
 data class AccrueDeviceContextData(
     val sdk: String = "Android",
-    val sdkVersion: String? = "v1.0.4",
+    val sdkVersion: String? = "v1.0.14",
     val brand: String? = Build.BRAND,
     val deviceName: String? = Build.DEVICE,
     val deviceType: String? = Build.PRODUCT,

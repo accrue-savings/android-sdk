@@ -14,6 +14,44 @@ object AccrueWebEvents {
     const val accrueWalletSignInPerformedMessageKey: String = "AccrueWallet::SignInPerformed"
     const val accrueWalletContextChangedEventKey: String = "AccrueWallet::ContextChanged"
     const val accrueWalletParentAppEventKey: String = "AccrueWallet::ParentAppEvent"
+    
+    // Google Wallet Provisioning Events
+    const val accrueWalletGoogleProvisioningRequestedKey: String = "AccrueWallet::GoogleWalletProvisioningRequested"
+    const val accrueWalletGoogleProvisioningResponseKey: String = "AccrueWallet::GoogleWalletProvisioningResponse"
+    
+    // Google Wallet Provisioning WebView Functions
+    const val generateGoogleWalletProvisioningTokenFunction: String = "__GENERATE_GOOGLE_WALLET_PUSH_PROVISIONING_TOKEN"
+    const val googleWalletProvisioningSuccessFunction: String = "__GOOGLE_WALLET_PROVISIONING_SUCCESS"
+    const val googleWalletProvisioningErrorFunction: String = "__GOOGLE_WALLET_PROVISIONING_ERROR"
+}
+
+object TestConfig {
+    // Master switch to enable/disable all testing features
+    @Volatile
+    var enableTestMode: Boolean = false
+    
+    // Google Wallet Provisioning specific test configurations
+    object GoogleWalletProvisioning {
+        // If true and test mode is enabled, will bypass actual Google Pay API calls
+        @Volatile
+        var mockGooglePayApi: Boolean = false
+        
+        // Controls whether mock operations succeed or fail
+        @Volatile
+        var mockOperationsSucceed: Boolean = true
+        
+        // Simulated delays in milliseconds (to mimic real-world timing)
+        @Volatile
+        var mockOperationDelay: Long = 1500
+        
+        // Custom error code for mock failures
+        @Volatile
+        var mockErrorCode: String = "MOCK_ERROR"
+        
+        // Custom error message for mock failures
+        @Volatile
+        var mockErrorMessage: String = "This is a mocked error for testing purposes"
+    }
 }
 
 object SampleData {

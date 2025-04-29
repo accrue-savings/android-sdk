@@ -18,6 +18,7 @@ import org.json.JSONException
 import org.json.JSONObject
 import androidx.browser.customtabs.CustomTabsIntent
 import androidx.core.net.toUri
+import androidx.fragment.app.FragmentActivity
 
 fun contextToJson(contextData: AccrueContextData?): String {
     if(contextData === null) {
@@ -64,6 +65,7 @@ class AccrueWebView @JvmOverloads constructor(
 ) : WebView(context) {
 
     private var webAppInterface: WebAppInterface? = null
+    private var googleWalletProvisioning: GoogleWalletProvisioning? = null
 
     init {
         setupWebView()
@@ -83,8 +85,15 @@ class AccrueWebView @JvmOverloads constructor(
                 return true
             }
         }
+        
+        // Initialize Google Wallet Provisioning if context is a FragmentActivity
+        if (context is FragmentActivity) {
+            googleWalletProvisioning = GoogleWalletProvisioning(context)
+            googleWalletProvisioning?.initialize(context, this)
+        }
+        
         // Add JavaScript interface and context data
-        webAppInterface = WebAppInterface(this.onAction, contextData)
+        webAppInterface = WebAppInterface(this.onAction, contextData, googleWalletProvisioning)
         addJavascriptInterface(webAppInterface!!, AccrueWebEvents.eventHandlerName)
 
         // Load URL
@@ -93,7 +102,8 @@ class AccrueWebView @JvmOverloads constructor(
 
     private class WebAppInterface(
         private val onAction: Map<AccrueAction, () -> Unit> = emptyMap(),
-        private var _contextData: AccrueContextData?
+        private var _contextData: AccrueContextData?,
+        private val googleWalletProvisioning: GoogleWalletProvisioning?
     ) {
         var contextData: AccrueContextData?
             get() = _contextData
@@ -121,6 +131,35 @@ class AccrueWebView @JvmOverloads constructor(
                 when (key) {
                     "AccrueWallet::${AccrueAction.SignInButtonClicked}" -> onAction[AccrueAction.SignInButtonClicked]?.invoke()
                     "AccrueWallet::${AccrueAction.RegisterButtonClicked}" -> onAction[AccrueAction.RegisterButtonClicked]?.invoke()
+                    AccrueWebEvents.accrueWalletGoogleProvisioningRequestedKey -> {
+                        Log.i("AccrueWebView", "Google Wallet Provisioning Requested")
+                        onAction[AccrueAction.GoogleWalletProvisioningRequested]?.invoke()
+                        
+                        // Get device info and send it to WebView to generate token
+                        googleWalletProvisioning?.let { provisioning ->
+                            provisioning.getDeviceInfo { deviceInfo ->
+                                val deviceInfoJson = JSONObject().apply {
+                                    put("deviceId", deviceInfo.deviceId)
+                                    put("deviceType", deviceInfo.deviceType)
+                                    put("provisioningAppVersion", deviceInfo.provisioningAppVersion)
+                                    put("walletAccountId", deviceInfo.walletAccountId)
+                                }.toString()
+                                
+                                // We need to get this to the main thread to evaluate JavaScript
+                                post {
+                                    evaluateJavascript("""
+                                        if (typeof window !== "undefined" && typeof window?.["${AccrueWebEvents.generateGoogleWalletProvisioningTokenFunction}"] === "function") {
+                                            window?.["${AccrueWebEvents.generateGoogleWalletProvisioningTokenFunction}"]?.($deviceInfoJson);
+                                        }
+                                    """.trimIndent(), null)
+                                }
+                            }
+                        }
+                    }
+                    AccrueWebEvents.accrueWalletGoogleProvisioningResponseKey -> {
+                        Log.i("AccrueWebView", "Google Wallet Provisioning Response Received")
+                        googleWalletProvisioning?.startPushProvisioning(message)
+                    }
                     else -> Log.w("AccrueWebView", "Unknown message type: $key")
                 }
             } catch (e: JSONException) {
@@ -257,7 +296,9 @@ class AccrueWebView @JvmOverloads constructor(
 
     fun handleEvent(eventName: String, data: String) {
         val eventMap = mapOf(
-            "AccrueTabPressed" to "__GO_TO_HOME_SCREEN"
+            "AccrueTabPressed" to "__GO_TO_HOME_SCREEN",
+            AccrueWebEvents.googleWalletProvisioningSuccessFunction to AccrueWebEvents.googleWalletProvisioningSuccessFunction,
+            AccrueWebEvents.googleWalletProvisioningErrorFunction to AccrueWebEvents.googleWalletProvisioningErrorFunction
         )
         val mappedEventName = eventMap[eventName] ?: eventName
 
@@ -267,5 +308,4 @@ class AccrueWebView @JvmOverloads constructor(
             }
         """.trimIndent(), null)
     }
-
 }

@@ -24,6 +24,7 @@ class AccrueWallet : Fragment() {
             }
         }
     private lateinit var webView: AccrueWebView
+    private var googleWalletProvisioning: GoogleWalletProvisioning? = null
 
     companion object {
         fun newInstance(
@@ -54,6 +55,10 @@ class AccrueWallet : Fragment() {
         Log.v(TAG, "builtUrl=$builtUrl");
         // Create AccrueWebView programmatically
         webView = AccrueWebView(requireContext(), url = builtUrl, contextData, onAction)
+        
+        // Initialize Google Wallet Provisioning
+        googleWalletProvisioning = GoogleWalletProvisioning(requireContext())
+        googleWalletProvisioning?.initialize(requireActivity(), webView)
         
         // Set layout parameters
         val layoutParams = ViewGroup.LayoutParams(
@@ -89,5 +94,21 @@ class AccrueWallet : Fragment() {
 
     fun handleEvent(eventName: String, data: String?) {
         webView.handleEvent(eventName, data ?: "{}")
+    }
+    
+    /**
+     * Check if Google Pay is available on this device
+     * @param callback Callback with the result of the check
+     */
+    fun isGooglePayAvailable(callback: (Boolean) -> Unit) {
+        googleWalletProvisioning?.isGooglePayAvailable(callback) ?: callback(false)
+    }
+    
+    /**
+     * Get the GoogleWalletProvisioning instance for testing purposes
+     * @return The GoogleWalletProvisioning instance or null if not initialized
+     */
+    fun getGoogleWalletProvisioning(): GoogleWalletProvisioning? {
+        return googleWalletProvisioning
     }
 }
