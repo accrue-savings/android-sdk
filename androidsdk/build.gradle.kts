@@ -7,6 +7,8 @@ plugins {
     id("maven-publish")
 }
 
+
+
 android {
     group = "com.accruesavings.androidsdk"
     version = "v1.0.13"
@@ -63,6 +65,8 @@ dependencies {
     // Google Pay API for Push Provisioning
     implementation("com.google.android.gms:play-services-pay:16.1.0")
     implementation("com.google.android.gms:play-services-wallet:19.2.1")
+    // TapAndPay API for push provisioning functionality - using local SDK
+    implementation("com.google.android.gms:play-services-tapandpay:18.3.3")
     // Google Sign-In for wallet account ID
     implementation("com.google.android.gms:play-services-auth:20.7.0")
     testImplementation(libs.junit)
@@ -88,6 +92,7 @@ publishing {
         }
     }
     repositories {
+        google()
         maven {
             name = "GitHubPackages"
             url = uri("https://maven.pkg.github.com/accrue-savings/android-sdk")

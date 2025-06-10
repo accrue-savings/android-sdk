@@ -89,11 +89,11 @@ class AccrueWebView @JvmOverloads constructor(
         // Initialize Google Wallet Provisioning if context is a FragmentActivity
         if (context is FragmentActivity) {
             googleWalletProvisioning = GoogleWalletProvisioning(context)
-            googleWalletProvisioning?.initialize(context, this)
+            googleWalletProvisioning?.initialize(context as FragmentActivity, this)
         }
         
         // Add JavaScript interface and context data
-        webAppInterface = WebAppInterface(this.onAction, contextData, googleWalletProvisioning)
+        webAppInterface = WebAppInterface(this.onAction, contextData, googleWalletProvisioning, this)
         addJavascriptInterface(webAppInterface!!, AccrueWebEvents.eventHandlerName)
 
         // Load URL
@@ -103,7 +103,8 @@ class AccrueWebView @JvmOverloads constructor(
     private class WebAppInterface(
         private val onAction: Map<AccrueAction, () -> Unit> = emptyMap(),
         private var _contextData: AccrueContextData?,
-        private val googleWalletProvisioning: GoogleWalletProvisioning?
+        private val googleWalletProvisioning: GoogleWalletProvisioning?,
+        private val webView: AccrueWebView
     ) {
         var contextData: AccrueContextData?
             get() = _contextData
@@ -146,8 +147,8 @@ class AccrueWebView @JvmOverloads constructor(
                                 }.toString()
                                 
                                 // We need to get this to the main thread to evaluate JavaScript
-                                post {
-                                    evaluateJavascript("""
+                                webView.post {
+                                    webView.evaluateJavascript("""
                                         if (typeof window !== "undefined" && typeof window?.["${AccrueWebEvents.generateGoogleWalletProvisioningTokenFunction}"] === "function") {
                                             window?.["${AccrueWebEvents.generateGoogleWalletProvisioningTokenFunction}"]?.($deviceInfoJson);
                                         }

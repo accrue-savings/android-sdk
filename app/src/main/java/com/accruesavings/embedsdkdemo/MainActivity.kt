@@ -23,7 +23,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var sampleDatabutton: Button
     private lateinit var updateContextButton: Button
     private lateinit var goToHomeButton: Button
-    private lateinit var accrueWallet: AccrueWallet
+    private var accrueWallet: AccrueWallet? = null
 
     private fun getContext(): AccrueContextData {
         val phoneNumber = phoneNumberInput.text.toString()
@@ -63,37 +63,49 @@ class MainActivity : AppCompatActivity() {
         }
 
         updateContextButton.setOnClickListener {
-            accrueWallet.updateContextData(getContext())
+            accrueWallet?.updateContextData(getContext())
         }
 
         goToHomeButton.setOnClickListener {
-            accrueWallet.handleEvent("AccrueTabPressed", "")
+            accrueWallet?.handleEvent("AccrueTabPressed", "")
         }
 
         reloadButton.setOnClickListener {
-            val merchantId = merchantIdInput.text.toString()
-            val redirectionToken = redirectTokenInput.text.toString()
+            loadAccrueWallet()
+        }
+    }
+    
+    private fun loadAccrueWallet() {
+        val merchantId = merchantIdInput.text.toString()
+        val redirectionToken = redirectTokenInput.text.toString()
+        val contextData = getContext()
 
-            val contextData = getContext()
-
-            accrueWallet = AccrueWallet.newInstance(
-//                url = "http://localhost:5173/webview",
-                contextData = contextData,
-                redirectionToken = redirectionToken,
-                isSandbox = true,
-                merchantId = merchantId,
-                onAction = mapOf(
-                    AccrueAction.SignInButtonClicked to {
-                        Log.i("AccrueWebView", "SIGN IN BUTTON HANDLER ACTIVATED")
-                    },
-                    AccrueAction.RegisterButtonClicked to {
-                        Log.i("AccrueWebView", "REGISTER BUTTON HANDLER ACTIVATED")
-                    }
-                )
-            )
+        // Remove existing fragment if it exists
+        accrueWallet?.let { existingWallet ->
             supportFragmentManager.beginTransaction()
-                .replace(R.id.fragment_container, accrueWallet)
+                .remove(existingWallet)
                 .commit()
         }
+
+        // Create new AccrueWallet instance with early initialization to prevent lifecycle issues
+        accrueWallet = AccrueWallet.newInstanceWithEarlyInit(
+            activity = this,
+            contextData = contextData,
+            redirectionToken = redirectionToken,
+            isSandbox = true,
+            merchantId = merchantId,
+            onAction = mapOf(
+                AccrueAction.SignInButtonClicked to {
+                    Log.i("AccrueWebView", "SIGN IN BUTTON HANDLER ACTIVATED")
+                },
+                AccrueAction.RegisterButtonClicked to {
+                    Log.i("AccrueWebView", "REGISTER BUTTON HANDLER ACTIVATED")
+                }
+            )
+        )
+        
+        supportFragmentManager.beginTransaction()
+            .replace(R.id.fragment_container, accrueWallet!!)
+            .commit()
     }
 }

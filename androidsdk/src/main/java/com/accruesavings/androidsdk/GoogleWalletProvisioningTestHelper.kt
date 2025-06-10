@@ -111,24 +111,20 @@ class GoogleWalletProvisioningTestHelper(
         
         // Create a mock response
         return PushProvisioningResponse(
-            cardToken = "mock-card-token-${random.nextInt(10000)}",
-            createdTime = System.currentTimeMillis().toString(),
-            lastModifiedTime = System.currentTimeMillis().toString(),
+            success = true,
             pushTokenizeRequestData = PushTokenizeRequestData(
-                displayName = "Mock Card",
                 opaquePaymentCard = "mock-opaque-payment-card",
                 lastDigits = "1234",
-                network = "VISA",
-                tokenServiceProvider = "TOKEN_PROVIDER_VISA",
-                userAddress = UserAddress(
+                tspProvider = "TOKEN_PROVIDER_VISA",
+                userAddress = com.accruesavings.androidsdk.UserAddress(
                     name = "John Doe",
                     address1 = "123 Main St",
                     address2 = "Apt 4B",
                     city = "New York",
                     state = "NY",
                     postalCode = "10001",
-                    country = "US",
-                    phone = "212-555-1234"
+                    countryCode = "US",
+                    phoneNumber = "212-555-1234"
                 )
             )
         )

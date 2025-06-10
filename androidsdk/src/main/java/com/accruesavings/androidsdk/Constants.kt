@@ -34,7 +34,7 @@ object TestConfig {
     object GoogleWalletProvisioning {
         // If true and test mode is enabled, will bypass actual Google Pay API calls
         @Volatile
-        var mockGooglePayApi: Boolean = false
+        var mockGooglePayApi: Boolean = true
         
         // Controls whether mock operations succeed or fail
         @Volatile
@@ -55,7 +55,7 @@ object TestConfig {
 }
 
 object SampleData {
-//    const val merchantId = "d6040b84-601c-4661-8ff0-2fea45687fb4"
+//    const val merchantId = "e510593e-b975-4f94-baa6-2ae42a8fa6f5"
     const val merchantId = "d0069102-e4a1-410b-ad82-ebe278d7785d" //snipes in sandbox
     const val redirectionToken = ""
 }

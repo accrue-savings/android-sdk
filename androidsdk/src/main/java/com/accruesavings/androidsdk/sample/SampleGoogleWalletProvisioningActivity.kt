@@ -175,7 +175,7 @@ class SampleGoogleWalletProvisioningActivity : AppCompatActivity() {
         val contextData = AccrueContextData()
         
         // Create onAction map
-        val onAction = mapOf(
+        val onAction: Map<AccrueAction, () -> Unit> = mapOf(
             AccrueAction.SignInButtonClicked to {
                 Log.d(TAG, "SignIn button clicked")
             },
@@ -189,10 +189,10 @@ class SampleGoogleWalletProvisioningActivity : AppCompatActivity() {
                 accrueWallet.isGooglePayAvailable { isAvailable ->
                     if (isAvailable) {
                         Log.d(TAG, "Google Pay is available")
-                        Toast.makeText(this, "Google Pay is available", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(this@SampleGoogleWalletProvisioningActivity, "Google Pay is available", Toast.LENGTH_SHORT).show()
                     } else {
                         Log.d(TAG, "Google Pay is not available")
-                        Toast.makeText(this, "Google Pay is not available on this device", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(this@SampleGoogleWalletProvisioningActivity, "Google Pay is not available on this device", Toast.LENGTH_SHORT).show()
                     }
                 }
             }
