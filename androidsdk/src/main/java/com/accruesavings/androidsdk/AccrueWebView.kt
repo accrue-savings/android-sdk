@@ -65,7 +65,7 @@ class AccrueWebView @JvmOverloads constructor(
 ) : WebView(context) {
 
     private var webAppInterface: WebAppInterface? = null
-    private var googleWalletProvisioning: GoogleWalletProvisioning? = null
+    private var provisioningMain: ProvisioningMain? = null
 
     init {
         setupWebView()
@@ -88,12 +88,12 @@ class AccrueWebView @JvmOverloads constructor(
         
         // Initialize Google Wallet Provisioning if context is a FragmentActivity
         if (context is FragmentActivity) {
-            googleWalletProvisioning = GoogleWalletProvisioning(context)
-            googleWalletProvisioning?.initialize(context as FragmentActivity, this)
+            provisioningMain = ProvisioningMain(context)
+            provisioningMain?.initialize(context as FragmentActivity, this)
         }
         
         // Add JavaScript interface and context data
-        webAppInterface = WebAppInterface(this.onAction, contextData, googleWalletProvisioning, this)
+        webAppInterface = WebAppInterface(this.onAction, contextData, provisioningMain, this)
         addJavascriptInterface(webAppInterface!!, AccrueWebEvents.eventHandlerName)
 
         // Load URL
@@ -103,7 +103,7 @@ class AccrueWebView @JvmOverloads constructor(
     private class WebAppInterface(
         private val onAction: Map<AccrueAction, () -> Unit> = emptyMap(),
         private var _contextData: AccrueContextData?,
-        private val googleWalletProvisioning: GoogleWalletProvisioning?,
+        private val provisioningMain: ProvisioningMain?,
         private val webView: AccrueWebView
     ) {
         var contextData: AccrueContextData?
@@ -137,7 +137,7 @@ class AccrueWebView @JvmOverloads constructor(
                         onAction[AccrueAction.GoogleWalletProvisioningRequested]?.invoke()
                         
                         // Get device info and send it to WebView to generate token
-                        googleWalletProvisioning?.let { provisioning ->
+                        provisioningMain?.let { provisioning ->
                             provisioning.getDeviceInfo { deviceInfo ->
                                 val deviceInfoJson = JSONObject().apply {
                                     put("deviceId", deviceInfo.deviceId)
@@ -146,6 +146,7 @@ class AccrueWebView @JvmOverloads constructor(
                                     put("walletAccountId", deviceInfo.walletAccountId)
                                 }.toString()
                                 
+                                Log.i("AccrueWebView", "Device Info: $deviceInfoJson")
                                 // We need to get this to the main thread to evaluate JavaScript
                                 webView.post {
                                     webView.evaluateJavascript("""
@@ -159,7 +160,7 @@ class AccrueWebView @JvmOverloads constructor(
                     }
                     AccrueWebEvents.accrueWalletGoogleProvisioningResponseKey -> {
                         Log.i("AccrueWebView", "Google Wallet Provisioning Response Received")
-                        googleWalletProvisioning?.startPushProvisioning(message)
+                        provisioningMain?.startPushProvisioning(message)
                     }
                     else -> Log.w("AccrueWebView", "Unknown message type: $key")
                 }

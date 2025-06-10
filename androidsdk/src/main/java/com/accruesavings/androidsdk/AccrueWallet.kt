@@ -24,7 +24,7 @@ class AccrueWallet : Fragment() {
             }
         }
     private lateinit var webView: AccrueWebView
-    private var googleWalletProvisioning: GoogleWalletProvisioning? = null
+    private var provisioningMain: ProvisioningMain? = null
 
     companion object {
         fun newInstance(
@@ -81,7 +81,7 @@ class AccrueWallet : Fragment() {
                 
                 // Pre-initialize Google Wallet Provisioning
                 try {
-                    this.googleWalletProvisioning = GoogleWalletProvisioning(activity)
+                    this.provisioningMain = ProvisioningMain(activity)
                     Log.d(TAG, "Google Wallet Provisioning pre-initialized in newInstanceWithEarlyInit")
                 } catch (e: Exception) {
                     Log.w(TAG, "Failed to pre-initialize Google Wallet Provisioning in newInstanceWithEarlyInit: ${e.message}")
@@ -93,9 +93,9 @@ class AccrueWallet : Fragment() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         
-        // Pre-initialize Google Wallet Provisioning if not already done
-        if (googleWalletProvisioning == null) {
-            preInitializeGoogleWalletProvisioning()
+        // Pre-initialize Provisioning if not already done
+        if (provisioningMain == null) {
+            preInitializeProvisioning()
         }
     }
 
@@ -108,11 +108,11 @@ class AccrueWallet : Fragment() {
         // Create AccrueWebView programmatically
         webView = AccrueWebView(requireContext(), url = builtUrl, contextData, onAction)
         
-        // Initialize Google Wallet Provisioning if not already pre-initialized
-        if (googleWalletProvisioning == null) {
-            googleWalletProvisioning = GoogleWalletProvisioning(requireContext())
+        // Initialize Provisioning if not already pre-initialized
+        if (provisioningMain == null) {
+            provisioningMain = ProvisioningMain(requireContext())
         }
-        googleWalletProvisioning?.initialize(requireActivity(), webView)
+        provisioningMain?.initialize(requireActivity(), webView)
         
         // Set layout parameters
         val layoutParams = ViewGroup.LayoutParams(
@@ -155,7 +155,7 @@ class AccrueWallet : Fragment() {
      * @param callback Callback with the result of the check
      */
     fun isGooglePayAvailable(callback: (Boolean) -> Unit) {
-        googleWalletProvisioning?.isGooglePayAvailable(callback) ?: callback(false)
+        provisioningMain?.isGooglePayAvailable(callback) ?: callback(false)
     }
     
     /**
@@ -163,7 +163,7 @@ class AccrueWallet : Fragment() {
      * @param callback Callback with the result of the check
      */
     fun isTapAndPayAvailable(callback: (Boolean) -> Unit) {
-        googleWalletProvisioning?.isTapAndPayAvailable(callback) ?: callback(false)
+        provisioningMain?.isTapAndPayAvailable(callback) ?: callback(false)
     }
     
     /**
@@ -173,8 +173,8 @@ class AccrueWallet : Fragment() {
      * @param callback Callback with status information (isActive, message)
      */
     fun getTokenStatus(tokenServiceProvider: Int, tokenReferenceId: String, callback: (Boolean, String?) -> Unit) {
-        googleWalletProvisioning?.getTokenStatus(tokenServiceProvider, tokenReferenceId, callback) 
-            ?: callback(false, "Google Wallet Provisioning not initialized")
+        provisioningMain?.getTokenStatus(tokenServiceProvider, tokenReferenceId, callback) 
+            ?: callback(false, "Provisioning not initialized")
     }
     
     /**
@@ -184,8 +184,8 @@ class AccrueWallet : Fragment() {
      * @param callback Callback with activation result (isActive, message)
      */
     fun checkAndActivateToken(tokenServiceProvider: Int, tokenReferenceId: String, callback: (Boolean, String?) -> Unit) {
-        googleWalletProvisioning?.checkAndActivateToken(tokenServiceProvider, tokenReferenceId, callback) 
-            ?: callback(false, "Google Wallet Provisioning not initialized")
+        provisioningMain?.checkAndActivateToken(tokenServiceProvider, tokenReferenceId, callback) 
+            ?: callback(false, "Provisioning not initialized")
     }
     
     /**
@@ -194,30 +194,30 @@ class AccrueWallet : Fragment() {
      * @param tokenReferenceId The token reference ID to delete
      */
     fun requestDeleteToken(tokenServiceProvider: Int, tokenReferenceId: String) {
-        googleWalletProvisioning?.requestDeleteToken(tokenServiceProvider, tokenReferenceId) 
-            ?: Log.w(TAG, "Cannot delete token - Google Wallet Provisioning not initialized")
+        provisioningMain?.requestDeleteToken(tokenServiceProvider, tokenReferenceId) 
+            ?: Log.w(TAG, "Cannot delete token - Provisioning not initialized")
     }
     
     /**
-     * Get the GoogleWalletProvisioning instance for testing purposes
-     * @return The GoogleWalletProvisioning instance or null if not initialized
+     * Get the ProvisioningMain instance for testing purposes
+     * @return The ProvisioningMain instance or null if not initialized
      */
-    fun getGoogleWalletProvisioning(): GoogleWalletProvisioning? {
-        return googleWalletProvisioning
+    fun getProvisioningMain(): ProvisioningMain? {
+        return provisioningMain
     }
     
     /**
-     * Pre-initialize Google Wallet Provisioning to handle ActivityResultLauncher registration
+     * Pre-initialize Provisioning to handle ActivityResultLauncher registration
      * before the activity reaches STARTED state. This method can be called from the host 
      * activity's onCreate method to avoid lifecycle issues.
      */
-    fun preInitializeGoogleWalletProvisioning() {
-        if (googleWalletProvisioning == null && activity != null) {
+    fun preInitializeProvisioning() {
+        if (provisioningMain == null && activity != null) {
             try {
-                googleWalletProvisioning = GoogleWalletProvisioning(requireContext())
-                Log.d(TAG, "Google Wallet Provisioning pre-initialized successfully")
+                provisioningMain = ProvisioningMain(requireContext())
+                Log.d(TAG, "Provisioning pre-initialized successfully")
             } catch (e: Exception) {
-                Log.w(TAG, "Failed to pre-initialize Google Wallet Provisioning: ${e.message}")
+                Log.w(TAG, "Failed to pre-initialize Provisioning: ${e.message}")
             }
         }
     }
@@ -225,7 +225,7 @@ class AccrueWallet : Fragment() {
     override fun onDestroy() {
         super.onDestroy()
         
-        // Clean up Google Wallet Provisioning resources
-        googleWalletProvisioning?.cleanup()
+        // Clean up Provisioning resources
+        provisioningMain?.cleanup()
     }
 }

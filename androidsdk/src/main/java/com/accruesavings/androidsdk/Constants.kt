@@ -28,7 +28,7 @@ object AccrueWebEvents {
 object TestConfig {
     // Master switch to enable/disable all testing features
     @Volatile
-    var enableTestMode: Boolean = false
+    var enableTestMode: Boolean = true
     
     // Google Wallet Provisioning specific test configurations
     object GoogleWalletProvisioning {

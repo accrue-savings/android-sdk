@@ -92,7 +92,8 @@ class MainActivity : AppCompatActivity() {
             activity = this,
             contextData = contextData,
             redirectionToken = redirectionToken,
-            isSandbox = true,
+            isSandbox = false,
+            url = "https://accrue-embed-git-othecos-google-in-app-accrue-money.vercel.app/webview/",
             merchantId = merchantId,
             onAction = mapOf(
                 AccrueAction.SignInButtonClicked to {

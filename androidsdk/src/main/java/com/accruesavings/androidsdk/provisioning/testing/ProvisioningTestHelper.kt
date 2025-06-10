@@ -1,33 +1,31 @@
-package com.accruesavings.androidsdk
+package com.accruesavings.androidsdk.provisioning.testing
 
 import android.os.Handler
 import android.os.Looper
 import android.util.Log
-import org.json.JSONObject
+import com.accruesavings.androidsdk.TestConfig
+import com.accruesavings.androidsdk.provisioning.device.DeviceInfo
+import com.accruesavings.androidsdk.provisioning.error.ErrorHandler
+import com.accruesavings.androidsdk.provisioning.error.ProvisioningError
+import com.accruesavings.androidsdk.provisioning.config.ProvisioningConstants
 import java.util.Random
 
 /**
- * Helper class for testing Google Wallet Provisioning functionality
- * This class contains methods to simulate API responses without calling actual Google Pay APIs
+ * Helper class for testing provisioning functionality
+ * Provides mock implementations for all provisioning operations
  */
-class GoogleWalletProvisioningTestHelper(
-    private val webViewInterface: GoogleWalletProvisioningWebViewInterface
+class ProvisioningTestHelper(
+    private val errorHandler: ErrorHandler
 ) {
-    private val TAG = "GWProvisioningTest"
+    companion object {
+        private const val TAG = "ProvisioningTestHelper"
+    }
+    
     private val mainHandler = Handler(Looper.getMainLooper())
     private val random = Random()
     
     /**
-     * Interface to communicate with the WebView
-     */
-    interface GoogleWalletProvisioningWebViewInterface {
-        fun handleSuccessEvent(data: String)
-        fun handleErrorEvent(errorJson: String)
-    }
-    
-    /**
-     * Simulate checking if Google Pay is available
-     * @param callback Callback with the result
+     * Mock Google Pay availability check
      */
     fun mockIsGooglePayAvailable(callback: (Boolean) -> Unit) {
         Log.d(TAG, "TEST MODE: Mocking Google Pay availability check")
@@ -37,42 +35,34 @@ class GoogleWalletProvisioningTestHelper(
             callback(mockResult)
             
             if (!mockResult) {
-                notifyError(
-                    TestConfig.GoogleWalletProvisioning.mockErrorCode,
-                    TestConfig.GoogleWalletProvisioning.mockErrorMessage
-                )
+                notifyMockError()
             }
         }
     }
     
     /**
-     * Simulate getting device information
-     * @param callback Callback with the mocked device info
+     * Mock device information retrieval
      */
     fun mockGetDeviceInfo(callback: (DeviceInfo) -> Unit) {
         Log.d(TAG, "TEST MODE: Mocking device info retrieval")
         runWithMockDelay {
             val mockDeviceInfo = DeviceInfo(
-                deviceId = "mock-device-id-${random.nextInt(10000)}",
-                deviceType = "MOBILE_PHONE",
-                provisioningAppVersion = "1.0.0-mock",
+                stableHardwareId = "mock-hardware-id-${random.nextInt(10000)}",
+                deviceType = ProvisioningConstants.DeviceTypes.MOBILE_PHONE,
+                osVersion = "1.0.0-mock",
                 walletAccountId = "mock-wallet-account-id-${random.nextInt(10000)}"
             )
             Log.d(TAG, "TEST MODE: Retrieved mock device info: $mockDeviceInfo")
             callback(mockDeviceInfo)
             
             if (!TestConfig.GoogleWalletProvisioning.mockOperationsSucceed) {
-                notifyError(
-                    TestConfig.GoogleWalletProvisioning.mockErrorCode,
-                    TestConfig.GoogleWalletProvisioning.mockErrorMessage
-                )
+                notifyMockError()
             }
         }
     }
     
     /**
-     * Simulate getting wallet account ID
-     * @param callback Callback with the mocked wallet account ID
+     * Mock wallet account ID retrieval
      */
     fun mockGetWalletAccountId(callback: (String?) -> Unit) {
         Log.d(TAG, "TEST MODE: Mocking wallet account ID retrieval")
@@ -84,35 +74,74 @@ class GoogleWalletProvisioningTestHelper(
             } else {
                 Log.d(TAG, "TEST MODE: Failed to retrieve mock wallet account ID")
                 callback(null)
-                
-                notifyError(
-                    TestConfig.GoogleWalletProvisioning.mockErrorCode,
-                    TestConfig.GoogleWalletProvisioning.mockErrorMessage
-                )
+                notifyMockError()
             }
         }
     }
     
     /**
-     * Simulate parsing a push provisioning response
-     * @return Mocked push provisioning response or null if mock operations should fail
+     * Mock TapAndPay availability check
      */
-    fun mockParsePushProvisioningResponse(): PushProvisioningResponse? {
+    fun mockIsTapAndPayAvailable(callback: (Boolean) -> Unit) {
+        Log.d(TAG, "TEST MODE: Mocking TapAndPay availability check")
+        runWithMockDelay {
+            val mockResult = TestConfig.GoogleWalletProvisioning.mockOperationsSucceed
+            Log.d(TAG, "TEST MODE: TapAndPay ${if (mockResult) "available" else "unavailable"}")
+            callback(mockResult)
+            
+            if (!mockResult) {
+                notifyMockError()
+            }
+        }
+    }
+    
+    /**
+     * Mock push provisioning operation
+     */
+    fun mockPushProvisioning(callback: (Result<String>) -> Unit) {
+        Log.d(TAG, "TEST MODE: Mocking push provisioning")
+        runWithMockDelay {
+            if (TestConfig.GoogleWalletProvisioning.mockOperationsSucceed) {
+                Log.d(TAG, "TEST MODE: Push provisioning succeeded")
+                callback(Result.success("Mock provisioning completed successfully"))
+            } else {
+                Log.d(TAG, "TEST MODE: Push provisioning failed")
+                val error = Exception("Mock push provisioning failed")
+                callback(Result.failure(error))
+                notifyMockError()
+            }
+        }
+    }
+    
+    /**
+     * Mock start push provisioning (for compatibility)
+     */
+    fun mockStartPushProvisioning() {
+        Log.d(TAG, "TEST MODE: Mocking start push provisioning")
+        mockPushProvisioning { result ->
+            result.fold(
+                onSuccess = { Log.d(TAG, "TEST MODE: Start push provisioning succeeded") },
+                onFailure = { Log.d(TAG, "TEST MODE: Start push provisioning failed") }
+            )
+        }
+    }
+    
+    /**
+     * Mock parsing push provisioning response
+     */
+    fun mockParsePushProvisioningResponse(): com.accruesavings.androidsdk.PushProvisioningResponse? {
         Log.d(TAG, "TEST MODE: Mocking response parsing")
         
         if (!TestConfig.GoogleWalletProvisioning.mockOperationsSucceed) {
             Log.d(TAG, "TEST MODE: Simulating parsing failure")
-            notifyError(
-                TestConfig.GoogleWalletProvisioning.mockErrorCode,
-                TestConfig.GoogleWalletProvisioning.mockErrorMessage
-            )
+            notifyMockError()
             return null
         }
         
         // Create a mock response
-        return PushProvisioningResponse(
+        return com.accruesavings.androidsdk.PushProvisioningResponse(
             success = true,
-            pushTokenizeRequestData = PushTokenizeRequestData(
+            pushTokenizeRequestData = com.accruesavings.androidsdk.PushTokenizeRequestData(
                 opaquePaymentCard = "mock-opaque-payment-card",
                 lastDigits = "1234",
                 tspProvider = "TOKEN_PROVIDER_VISA",
@@ -131,43 +160,20 @@ class GoogleWalletProvisioningTestHelper(
     }
     
     /**
-     * Simulate starting push provisioning
-     */
-    fun mockStartPushProvisioning() {
-        Log.d(TAG, "TEST MODE: Mocking push provisioning")
-        runWithMockDelay {
-            if (TestConfig.GoogleWalletProvisioning.mockOperationsSucceed) {
-                Log.d(TAG, "TEST MODE: Push provisioning succeeded")
-                webViewInterface.handleSuccessEvent("{}")
-            } else {
-                Log.d(TAG, "TEST MODE: Push provisioning failed")
-                notifyError(
-                    TestConfig.GoogleWalletProvisioning.mockErrorCode,
-                    TestConfig.GoogleWalletProvisioning.mockErrorMessage
-                )
-            }
-        }
-    }
-    
-    /**
      * Manually simulate a successful operation
      */
-    fun simulateSuccess() {
+    fun simulateSuccess(successMessage: String = "Mock operation succeeded") {
         if (!TestConfig.enableTestMode) {
             Log.w(TAG, "Cannot simulate success because test mode is disabled")
             return
         }
         
-        Log.d(TAG, "TEST MODE: Simulating success response")
-        runWithMockDelay {
-            webViewInterface.handleSuccessEvent("{}")
-        }
+        Log.d(TAG, "TEST MODE: Simulating success response: $successMessage")
+        // Success simulation would typically be handled by the calling code
     }
     
     /**
      * Manually simulate an error
-     * @param errorCode Optional custom error code
-     * @param errorMessage Optional custom error message
      */
     fun simulateError(errorCode: String? = null, errorMessage: String? = null) {
         if (!TestConfig.enableTestMode) {
@@ -180,21 +186,25 @@ class GoogleWalletProvisioningTestHelper(
         
         Log.d(TAG, "TEST MODE: Simulating error response with code: $code")
         runWithMockDelay {
-            notifyError(code, message, "Simulated error for testing")
+            val error = ProvisioningError(
+                code = code,
+                message = message,
+                details = "Simulated error for testing"
+            )
+            errorHandler.handleError(error)
         }
     }
     
     /**
-     * Toggle test mode
-     * @param enabled Whether test mode should be enabled
-     * @param mockSuccess Whether mock operations should succeed
+     * Configure test mode settings
      */
     fun setTestMode(enabled: Boolean, mockSuccess: Boolean = true) {
         TestConfig.enableTestMode = enabled
         TestConfig.GoogleWalletProvisioning.mockGooglePayApi = enabled
         TestConfig.GoogleWalletProvisioning.mockOperationsSucceed = mockSuccess
         
-        Log.d(TAG, "Test mode ${if (enabled) "enabled" else "disabled"}, operations will ${if (mockSuccess) "succeed" else "fail"}")
+        Log.d(TAG, "Test mode ${if (enabled) "enabled" else "disabled"}, " +
+                  "operations will ${if (mockSuccess) "succeed" else "fail"}")
     }
     
     /**
@@ -207,15 +217,14 @@ class GoogleWalletProvisioningTestHelper(
     }
     
     /**
-     * Notify WebView about an error
+     * Notify about mock errors using the error handler
      */
-    private fun notifyError(code: String, message: String, details: String? = null) {
-        val errorJson = JSONObject().apply {
-            put("code", code)
-            put("message", message)
-            details?.let { put("details", it) }
-        }.toString()
-        
-        webViewInterface.handleErrorEvent(errorJson)
+    private fun notifyMockError() {
+        val error = ProvisioningError(
+            code = TestConfig.GoogleWalletProvisioning.mockErrorCode,
+            message = TestConfig.GoogleWalletProvisioning.mockErrorMessage,
+            details = "Mock error for testing"
+        )
+        errorHandler.handleError(error)
     }
 } 

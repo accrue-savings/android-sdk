@@ -15,7 +15,7 @@ import androidx.core.content.ContextCompat
 import com.accruesavings.androidsdk.AccrueAction
 import com.accruesavings.androidsdk.AccrueContextData
 import com.accruesavings.androidsdk.AccrueWallet
-import com.accruesavings.androidsdk.GoogleWalletProvisioning
+import com.accruesavings.androidsdk.ProvisioningMain
 import com.accruesavings.androidsdk.SampleData
 import com.accruesavings.androidsdk.TestConfig
 
@@ -27,7 +27,7 @@ class SampleGoogleWalletProvisioningActivity : AppCompatActivity() {
     private val TAG = "SampleGoogleWalletProv"
     private lateinit var accrueWallet: AccrueWallet
     private val PERMISSION_REQUEST_GET_ACCOUNTS = 100
-    private var googleWalletProvisioning: GoogleWalletProvisioning? = null
+    private var provisioningMain: ProvisioningMain? = null
     
     // Test controls
     private lateinit var testControlsLayout: LinearLayout
@@ -57,7 +57,7 @@ class SampleGoogleWalletProvisioningActivity : AppCompatActivity() {
             text = "Enable Test Mode"
             isChecked = TestConfig.enableTestMode
             setOnCheckedChangeListener { _, isChecked ->
-                googleWalletProvisioning?.setTestMode(isChecked, mockSuccessSwitch.isChecked)
+                provisioningMain?.setTestMode(isChecked, mockSuccessSwitch.isChecked)
                 Toast.makeText(this@SampleGoogleWalletProvisioningActivity, 
                     "Test mode ${if (isChecked) "enabled" else "disabled"}", 
                     Toast.LENGTH_SHORT).show()
@@ -82,7 +82,7 @@ class SampleGoogleWalletProvisioningActivity : AppCompatActivity() {
         simulateSuccessButton = Button(this).apply {
             text = "Simulate Success"
             setOnClickListener {
-                googleWalletProvisioning?.simulateSuccess()
+                provisioningMain?.simulateSuccess()
                 Toast.makeText(this@SampleGoogleWalletProvisioningActivity, 
                     "Simulating success response", 
                     Toast.LENGTH_SHORT).show()
@@ -94,7 +94,7 @@ class SampleGoogleWalletProvisioningActivity : AppCompatActivity() {
         simulateErrorButton = Button(this).apply {
             text = "Simulate Error"
             setOnClickListener {
-                googleWalletProvisioning?.simulateError()
+                provisioningMain?.simulateError()
                 Toast.makeText(this@SampleGoogleWalletProvisioningActivity, 
                     "Simulating error response", 
                     Toast.LENGTH_SHORT).show()
@@ -206,9 +206,9 @@ class SampleGoogleWalletProvisioningActivity : AppCompatActivity() {
             onAction = onAction
         )
         
-        // Get a reference to the GoogleWalletProvisioning instance
-        accrueWallet.getGoogleWalletProvisioning()?.let { provisioning ->
-            googleWalletProvisioning = provisioning
+        // Get a reference to the ProvisioningMain instance
+        accrueWallet.getProvisioningMain()?.let { provisioning ->
+            provisioningMain = provisioning
             
             // Set initial test mode state
             provisioning.setTestMode(testModeSwitch.isChecked, mockSuccessSwitch.isChecked)
