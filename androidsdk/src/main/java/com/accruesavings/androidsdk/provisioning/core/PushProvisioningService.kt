@@ -10,7 +10,6 @@ import com.accruesavings.androidsdk.provisioning.error.ErrorHandler
 import com.accruesavings.androidsdk.provisioning.error.ProvisioningError
 import com.accruesavings.androidsdk.PushProvisioningResponse
 import com.accruesavings.androidsdk.UserAddress
-import com.accruesavings.androidsdk.TestConfig
 import android.util.Base64
 
 /**
@@ -66,12 +65,16 @@ class PushProvisioningService(
         val networkString = pushData.network ?: "Visa"
         val networkConstant = mapNetworkToTapAndPayConstant(networkString)
         
+        // Get token service provider
+        val tspString = pushData.tokenServiceProvider ?: ""
+        val tspConstant = mapTokenServiceProviderToConstant(tspString)
+        
         return PushTokenizeRequest.Builder()
             .setOpaquePaymentCard(decodeOpaquePaymentCard(pushData.opaquePaymentCard ?: ""))
             .setNetwork(networkConstant)
             .setDisplayName(pushData.displayName ?: "Card")
             .setLastDigits(pushData.lastDigits ?: "")
-            .setTokenServiceProvider(pushData.tspProvider ?: "")
+            .setTokenServiceProvider(tspConstant)
             .apply {
                 createUserAddress(pushData.userAddress)?.let {
                     setUserAddress(it)
@@ -113,6 +116,17 @@ class PushProvisioningService(
     }
     
     /**
+     * Map token service provider string to TapAndPay constant
+     */
+    private fun mapTokenServiceProviderToConstant(tsp: String): Int {
+        return when (tsp.uppercase()) {
+            "TOKEN_PROVIDER_VISA", "VISA" -> TapAndPay.TOKEN_PROVIDER_VISA
+            "TOKEN_PROVIDER_MASTERCARD", "MASTERCARD" -> TapAndPay.TOKEN_PROVIDER_MASTERCARD
+            else -> TapAndPay.TOKEN_PROVIDER_VISA // Default to Visa
+        }
+    }
+    
+    /**
      * Create UserAddress from typed UserAddress data
      */
     private fun createUserAddress(userAddress: UserAddress?): TapAndPayUserAddress? {
@@ -144,11 +158,6 @@ class PushProvisioningService(
         callback: (Result<String>) -> Unit
     ) {
 
-        if(TestConfig.enableTestMode && TestConfig.GoogleWalletProvisioning.mockGooglePayApi) {
-            Log.d(TAG, "Mocking TapAndPay API")
-            callback(Result.success("Mock push provisioning payload"))
-            return
-        }
 
         clientManager.tapAndPayClient?.let { client ->
             try {

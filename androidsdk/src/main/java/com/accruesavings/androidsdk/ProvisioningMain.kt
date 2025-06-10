@@ -27,7 +27,6 @@ import com.accruesavings.androidsdk.provisioning.error.ErrorHandler
 import com.accruesavings.androidsdk.provisioning.error.ProvisioningError
 import com.accruesavings.androidsdk.provisioning.error.ErrorCodes
 import com.accruesavings.androidsdk.provisioning.config.ProvisioningConstants
-import com.accruesavings.androidsdk.provisioning.testing.ProvisioningTestHelper
 
 /**
  * Data class for device information required for provisioning
@@ -88,7 +87,6 @@ class ProvisioningMain(private val context: Context) {
     private lateinit var pushProvisioningService: PushProvisioningService
     private lateinit var deviceInfoService: DeviceInfoService
     private lateinit var errorHandler: ErrorHandler
-    private lateinit var provisioningTestHelper: ProvisioningTestHelper
     
     /**
      * Initialize all services and components
@@ -109,27 +107,12 @@ class ProvisioningMain(private val context: Context) {
         errorHandler = ErrorHandler(webView)
         tapAndPayClientManager = TapAndPayClientManager(context)
         pushProvisioningService = PushProvisioningService(tapAndPayClientManager, errorHandler)
-        provisioningTestHelper = ProvisioningTestHelper(errorHandler)
-        deviceInfoService = DeviceInfoService(context, provisioningTestHelper)
-        
-        // Set up test helper callbacks to properly notify webview
-        Log.d(TAG, "Setting up test helper callbacks")
-        provisioningTestHelper.setNotificationCallbacks(
-            onSuccess = { data -> 
-                Log.d(TAG, "Test helper success callback invoked with: $data")
-                notifySuccess(data) 
-            },
-            onError = { code, message, details -> 
-                Log.d(TAG, "Test helper error callback invoked with: $code - $message")
-                notifyError(code, message, details) 
-            }
-        )
+        deviceInfoService = DeviceInfoService(context)
         
         // Initialize TapAndPay client
         if (!tapAndPayClientManager.initialize(activity)) {
             Log.w(TAG, "Failed to initialize TapAndPay client")
         }
-         
         
         Log.d(TAG, "ProvisioningMain initialized successfully")
     }
@@ -139,12 +122,6 @@ class ProvisioningMain(private val context: Context) {
      */
     fun isTapAndPayAvailable(callback: (Boolean) -> Unit) {
         Log.d(TAG, "Checking TapAndPay availability")
-        
-        if (TestConfig.enableTestMode && TestConfig.GoogleWalletProvisioning.mockGooglePayApi) {
-            provisioningTestHelper.mockIsTapAndPayAvailable(callback)
-            return
-        }
-        
         tapAndPayClientManager.isTapAndPayAvailable(callback)
     }
     
@@ -153,11 +130,6 @@ class ProvisioningMain(private val context: Context) {
      */
     fun isGooglePayAvailable(callback: (Boolean) -> Unit) {
         Log.d(TAG, "Checking Google Pay availability")
-        
-        if (TestConfig.enableTestMode && TestConfig.GoogleWalletProvisioning.mockGooglePayApi) {
-            provisioningTestHelper.mockIsGooglePayAvailable(callback)
-            return
-        }
         
         paymentsClient?.let { client ->
             val request = IsReadyToPayRequest.fromJson(createIsReadyToPayRequest().toString())
@@ -179,20 +151,6 @@ class ProvisioningMain(private val context: Context) {
      */
     fun getDeviceInfo(callback: (DeviceInfo) -> Unit) {
         Log.d(TAG, "Getting device information")
-        
-        if (TestConfig.enableTestMode && TestConfig.GoogleWalletProvisioning.mockGooglePayApi) {
-            provisioningTestHelper.mockGetDeviceInfo { deviceInfo ->
-                // Convert new DeviceInfo to legacy DeviceInfo
-                val legacyInfo = DeviceInfo(
-                    deviceId = deviceInfo.stableHardwareId,
-                    deviceType = deviceInfo.deviceType,
-                    provisioningAppVersion = deviceInfo.osVersion,
-                    walletAccountId = deviceInfo.walletAccountId
-                )
-                callback(legacyInfo)
-            }
-            return
-        }
         
         tapAndPayClientManager.getActiveWalletId(
             onSuccess = { walletId ->
@@ -223,9 +181,6 @@ class ProvisioningMain(private val context: Context) {
      * Parse provisioning response from WebView
      */
     fun parsePushProvisioningResponse(jsonData: String): PushProvisioningResponse? {
-        if(TestConfig.enableTestMode && TestConfig.GoogleWalletProvisioning.mockPushProvisioningPayload) {
-            return provisioningTestHelper.mockParsePushProvisioningResponse()
-        }
         return try {
             val json = JSONObject(jsonData)
             val dataProperty = json.getJSONObject("data")
@@ -332,7 +287,6 @@ class ProvisioningMain(private val context: Context) {
         notifyError(ErrorCodes.ERROR_PUSH_PROVISIONING_FAILED, "Token deletion not fully supported", "Token ID: $tokenReferenceId")
     }
     
- 
     private fun checkPrerequisitesAndProvision(jsonData: String) {
         // Launch coroutine to handle async operations with early returns
         CoroutineScope(Dispatchers.Main).launch {
@@ -348,21 +302,16 @@ class ProvisioningMain(private val context: Context) {
     private suspend fun checkPrerequisitesAndProvisionAsync(jsonData: String) {
         Log.d(TAG, "Checking prerequisites and provisioning")
         
-        // Skip verification checks if test mode is enabled and APIs are mocked
-        if (TestConfig.enableTestMode && TestConfig.GoogleWalletProvisioning.mockGooglePayApi) {
-            Log.d(TAG, "Skipping Google Pay and TapAndPay verification checks (test mode with mocked APIs)")
-        } else {
-            // Early return if Google Pay not available
-            if (!isGooglePayAvailableAsync()) {
-                notifyError(ErrorCodes.ERROR_GOOGLE_PAY_UNAVAILABLE, "Google Pay not available")
-                return
-            }
-            
-            // Early return if TapAndPay not available
-            if (!isTapAndPayAvailableAsync()) {
-                notifyError(ErrorCodes.ERROR_DEVICE_NOT_SUPPORTED, "TapAndPay not available")
-                return
-            }
+        // Early return if Google Pay not available
+        if (!isGooglePayAvailableAsync()) {
+            notifyError(ErrorCodes.ERROR_GOOGLE_PAY_UNAVAILABLE, "Google Pay not available")
+            return
+        }
+        
+        // Early return if TapAndPay not available
+        if (!isTapAndPayAvailableAsync()) {
+            notifyError(ErrorCodes.ERROR_DEVICE_NOT_SUPPORTED, "TapAndPay not available")
+            return
         }
         
         // Early return if parsing fails

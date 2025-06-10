@@ -3,17 +3,14 @@ package com.accruesavings.androidsdk.provisioning.device
 import android.content.Context
 import android.provider.Settings
 import android.util.Log
-import com.accruesavings.androidsdk.TestConfig
 import com.accruesavings.androidsdk.provisioning.error.ErrorCodes
 import com.accruesavings.androidsdk.provisioning.error.ProvisioningError
-import com.accruesavings.androidsdk.provisioning.testing.ProvisioningTestHelper
 
 /**
  * Service responsible for gathering device information needed for provisioning
  */
 class DeviceInfoService(
-    private val context: Context,
-    private val testHelper: ProvisioningTestHelper
+    private val context: Context
 ) {
     companion object {
         private const val TAG = "DeviceInfoService"
@@ -33,12 +30,6 @@ class DeviceInfoService(
         walletAccountId: String?,
         callback: (DeviceInfo?) -> Unit
     ) {
-        // Use test implementation if enabled
-        if (TestConfig.enableTestMode && TestConfig.GoogleWalletProvisioning.mockGooglePayApi) {
-            testHelper.mockGetDeviceInfo(callback)
-            return
-        }
-        
         // Check if we have all required info
         val hwId = getStableHardwareId()
         if (hwId != null && walletAccountId != null) {
