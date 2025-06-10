@@ -1,8 +1,6 @@
 package com.accruesavings.androidsdk.provisioning.core
 
 import android.util.Log
-import androidx.activity.result.ActivityResultLauncher
-import androidx.activity.result.IntentSenderRequest
 import androidx.fragment.app.FragmentActivity
 import com.google.android.gms.tapandpay.TapAndPay
 import com.google.android.gms.tapandpay.issuer.PushTokenizeRequest
@@ -10,7 +8,9 @@ import com.google.android.gms.tapandpay.issuer.UserAddress as TapAndPayUserAddre
 import com.accruesavings.androidsdk.provisioning.error.ErrorCodes
 import com.accruesavings.androidsdk.provisioning.error.ErrorHandler
 import com.accruesavings.androidsdk.provisioning.error.ProvisioningError
-import org.json.JSONObject
+import com.accruesavings.androidsdk.PushProvisioningResponse
+import com.accruesavings.androidsdk.UserAddress
+import com.accruesavings.androidsdk.TestConfig
 import android.util.Base64
 
 /**
@@ -30,28 +30,20 @@ class PushProvisioningService(
      */
     fun startPushProvisioning(
         activity: FragmentActivity,
-        provisioningData: String,
-        launcher: ActivityResultLauncher<IntentSenderRequest>?,
+        provisioningData: PushProvisioningResponse,
         callback: (Result<String>) -> Unit
     ) {
-        Log.d(TAG, "Starting push provisioning")
-        
-        if (launcher == null) {
-            val error = ProvisioningError(
-                code = ErrorCodes.ERROR_LAUNCHER_UNAVAILABLE,
-                message = "ActivityResultLauncher not available"
-            )
-            errorHandler.handleError(error)
-            callback(Result.failure(Exception(error.message)))
-            return
-        }
+        Log.d(TAG, "PushProvisioningService: Starting push provisioning")
+    
         
         try {
-            val response = JSONObject(provisioningData)
-            val pushTokenizeRequest = createPushTokenizeRequest(response)
-            
+
+            Log.d(TAG, "ProvisioningData: ${provisioningData}")
+            val pushTokenizeRequest = createPushTokenizeRequest(provisioningData)
+            Log.d(TAG, "PushTokenizeRequest: ${pushTokenizeRequest}")
+
             // Perform the actual push provisioning
-            performPushProvisioning(activity, pushTokenizeRequest, launcher, callback)
+            performPushProvisioning(activity, pushTokenizeRequest, callback)
             
         } catch (e: Exception) {
             Log.e(TAG, "Failed to start push provisioning", e)
@@ -67,15 +59,21 @@ class PushProvisioningService(
     /**
      * Create a PushTokenizeRequest from the provisioning data
      */
-    private fun createPushTokenizeRequest(response: JSONObject): PushTokenizeRequest {
-        val pushData = response.getJSONObject("pushTokenizeRequestData")
+    private fun createPushTokenizeRequest(provisioningData: PushProvisioningResponse): PushTokenizeRequest {
+        val pushData = provisioningData.pushTokenizeRequestData
+        
+        // Get network from response data, default to Visa if not specified
+        val networkString = pushData.network ?: "Visa"
+        val networkConstant = mapNetworkToTapAndPayConstant(networkString)
         
         return PushTokenizeRequest.Builder()
-            .setOpaquePaymentCard(decodeOpaquePaymentCard(pushData.getString("opaquePaymentCard")))
-            .setNetwork(TapAndPay.CARD_NETWORK_VISA) // Use constant network for now
-            .setDisplayName(pushData.optString("displayName", "Card"))
+            .setOpaquePaymentCard(decodeOpaquePaymentCard(pushData.opaquePaymentCard ?: ""))
+            .setNetwork(networkConstant)
+            .setDisplayName(pushData.displayName ?: "Card")
+            .setLastDigits(pushData.lastDigits ?: "")
+            .setTokenServiceProvider(pushData.tspProvider ?: "")
             .apply {
-                createUserAddress(pushData.optJSONObject("userAddress"))?.let {
+                createUserAddress(pushData.userAddress)?.let {
                     setUserAddress(it)
                 }
             }
@@ -115,21 +113,21 @@ class PushProvisioningService(
     }
     
     /**
-     * Create UserAddress from JSON data
+     * Create UserAddress from typed UserAddress data
      */
-    private fun createUserAddress(addressJson: JSONObject?): TapAndPayUserAddress? {
-        if (addressJson == null) return null
+    private fun createUserAddress(userAddress: UserAddress?): TapAndPayUserAddress? {
+        if (userAddress == null) return null
         
         return try {
             TapAndPayUserAddress.newBuilder()
-                .setName(addressJson.optString("name", ""))
-                .setAddress1(addressJson.optString("address1", ""))
-                .setAddress2(addressJson.optString("address2", ""))
-                .setLocality(addressJson.optString("locality", ""))
-                .setAdministrativeArea(addressJson.optString("administrativeArea", ""))
-                .setCountryCode(addressJson.optString("countryCode", "US"))
-                .setPostalCode(addressJson.optString("postalCode", ""))
-                .setPhoneNumber(addressJson.optString("phoneNumber", ""))
+                .setName(userAddress.name ?: "")
+                .setAddress1(userAddress.address1 ?: "")
+                .setAddress2(userAddress.address2 ?: "")
+                .setLocality(userAddress.city ?: "")
+                .setAdministrativeArea(userAddress.state ?: "")
+                .setCountryCode(userAddress.country ?: "US")
+                .setPostalCode(userAddress.postalCode ?: "")
+                .setPhoneNumber(userAddress.phone ?: "")
                 .build()
         } catch (e: Exception) {
             Log.w(TAG, "Failed to create user address", e)
@@ -143,9 +141,15 @@ class PushProvisioningService(
     private fun performPushProvisioning(
         activity: FragmentActivity,
         request: PushTokenizeRequest,
-        launcher: ActivityResultLauncher<IntentSenderRequest>,
         callback: (Result<String>) -> Unit
     ) {
+
+        if(TestConfig.enableTestMode && TestConfig.GoogleWalletProvisioning.mockGooglePayApi) {
+            Log.d(TAG, "Mocking TapAndPay API")
+            callback(Result.success("Mock push provisioning payload"))
+            return
+        }
+
         clientManager.tapAndPayClient?.let { client ->
             try {
                 Log.d(TAG, "Calling TapAndPay pushTokenize")

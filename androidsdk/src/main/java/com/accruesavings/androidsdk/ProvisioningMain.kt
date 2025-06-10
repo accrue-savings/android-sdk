@@ -3,9 +3,7 @@ package com.accruesavings.androidsdk
 import android.app.Activity
 import android.content.Context
 import android.content.Intent
-import android.util.Log
-import androidx.activity.result.ActivityResultLauncher
-import androidx.activity.result.contract.ActivityResultContracts
+import android.util.Log 
 import androidx.fragment.app.FragmentActivity
 import com.google.android.gms.common.api.Status
 import com.google.android.gms.wallet.PaymentsClient
@@ -16,6 +14,9 @@ import com.google.android.gms.tapandpay.TapAndPay
 import org.json.JSONObject
 import org.json.JSONArray
 import androidx.activity.result.IntentSenderRequest
+import kotlinx.coroutines.*
+import kotlin.coroutines.resume
+import kotlin.coroutines.suspendCoroutine
 
 // Import our modular provisioning components
 import com.accruesavings.androidsdk.provisioning.core.TapAndPayClientManager
@@ -40,17 +41,22 @@ data class DeviceInfo(
 
 /**
  * Data class to represent the response from the web for push provisioning
+ * Matches PublicGoogleWalletProvisioningResponse interface
  */
 data class PushProvisioningResponse(
-    val success: Boolean,
+    val cardToken: String,
+    val createdTime: String,
+    val lastModifiedTime: String,
     val pushTokenizeRequestData: PushTokenizeRequestData
 )
 
 data class PushTokenizeRequestData(
+    val displayName: String?,
     val opaquePaymentCard: String?,
-    val userAddress: UserAddress?,
     val lastDigits: String?,
-    val tspProvider: String?
+    val network: String?, // 'Visa' | 'Mastercard'
+    val tokenServiceProvider: String?, // 'TOKEN_PROVIDER_VISA' | 'TOKEN_PROVIDER_MASTERCARD'
+    val userAddress: UserAddress?
 )
 
 data class UserAddress(
@@ -59,9 +65,9 @@ data class UserAddress(
     val address2: String?,
     val city: String?,
     val state: String?,
-    val countryCode: String?,
     val postalCode: String?,
-    val phoneNumber: String?
+    val country: String?,
+    val phone: String?
 )
 
 /**
@@ -76,7 +82,6 @@ class ProvisioningMain(private val context: Context) {
     private var paymentsClient: PaymentsClient? = null
     private var webView: AccrueWebView? = null
     private var activity: FragmentActivity? = null
-    private var provisioningResultLauncher: ActivityResultLauncher<IntentSenderRequest>? = null
     
     // Specialized services
     private lateinit var tapAndPayClientManager: TapAndPayClientManager
@@ -107,13 +112,24 @@ class ProvisioningMain(private val context: Context) {
         provisioningTestHelper = ProvisioningTestHelper(errorHandler)
         deviceInfoService = DeviceInfoService(context, provisioningTestHelper)
         
+        // Set up test helper callbacks to properly notify webview
+        Log.d(TAG, "Setting up test helper callbacks")
+        provisioningTestHelper.setNotificationCallbacks(
+            onSuccess = { data -> 
+                Log.d(TAG, "Test helper success callback invoked with: $data")
+                notifySuccess(data) 
+            },
+            onError = { code, message, details -> 
+                Log.d(TAG, "Test helper error callback invoked with: $code - $message")
+                notifyError(code, message, details) 
+            }
+        )
+        
         // Initialize TapAndPay client
         if (!tapAndPayClientManager.initialize(activity)) {
             Log.w(TAG, "Failed to initialize TapAndPay client")
         }
-        
-        // Register activity result launcher
-        registerActivityResultLauncher(activity)
+         
         
         Log.d(TAG, "ProvisioningMain initialized successfully")
     }
@@ -197,18 +213,8 @@ class ProvisioningMain(private val context: Context) {
      * Start push provisioning with data from WebView
      */
     fun startPushProvisioning(jsonData: String) {
-        Log.d(TAG, "Starting push provisioning")
-        
-        if (TestConfig.enableTestMode && TestConfig.GoogleWalletProvisioning.mockGooglePayApi) {
-            provisioningTestHelper.mockStartPushProvisioning()
-            return
-        }
-        
-        if (provisioningResultLauncher == null) {
-            notifyError(ErrorCodes.ERROR_LAUNCHER_UNAVAILABLE, "ActivityResultLauncher not available")
-            return
-        }
-        
+        Log.d(TAG, "ProvisioningMain: Starting push provisioning")
+
         // Check prerequisites then delegate to service
         checkPrerequisitesAndProvision(jsonData)
     }
@@ -217,22 +223,26 @@ class ProvisioningMain(private val context: Context) {
      * Parse provisioning response from WebView
      */
     fun parsePushProvisioningResponse(jsonData: String): PushProvisioningResponse? {
-        if (TestConfig.enableTestMode && TestConfig.GoogleWalletProvisioning.mockGooglePayApi) {
+        if(TestConfig.enableTestMode && TestConfig.GoogleWalletProvisioning.mockPushProvisioningPayload) {
             return provisioningTestHelper.mockParsePushProvisioningResponse()
         }
-        
         return try {
             val json = JSONObject(jsonData)
-            val data = json.getJSONObject("data")
-            val pushData = data.getJSONObject("pushTokenizeRequestData")
+            val dataProperty = json.getJSONObject("data")
+            val pushData = dataProperty.getJSONObject("pushTokenizeRequestData")
+
             
             PushProvisioningResponse(
-                success = data.optBoolean("success", false),
+                cardToken = dataProperty.getString("cardToken"),
+                createdTime = dataProperty.getString("createdTime"),
+                lastModifiedTime = dataProperty.getString("lastModifiedTime"),
                 pushTokenizeRequestData = PushTokenizeRequestData(
+                    displayName = pushData.optString("displayName"),
                     opaquePaymentCard = pushData.optString("opaquePaymentCard"),
-                    userAddress = parseUserAddress(pushData.optJSONObject("userAddress")),
                     lastDigits = pushData.optString("lastDigits"),
-                    tspProvider = pushData.optString("tspProvider")
+                    network = pushData.optString("network"),
+                    tokenServiceProvider = pushData.optString("tokenServiceProvider"),
+                    userAddress = parseUserAddress(pushData.optJSONObject("userAddress"))
                 )
             )
         } catch (e: Exception) {
@@ -296,23 +306,6 @@ class ProvisioningMain(private val context: Context) {
         deviceInfoService.clearCache()
     }
     
-    /**
-     * Set test mode (for testing purposes)
-     */
-    fun setTestMode(enabled: Boolean, mockSuccess: Boolean = true) {
-        provisioningTestHelper.setTestMode(enabled, mockSuccess)
-    }
-    
-    /**
-     * Simulate a success response (for testing)
-     */
-    fun simulateSuccess() = provisioningTestHelper.simulateSuccess()
-    
-    /**
-     * Simulate an error response (for testing)
-     */
-    fun simulateError(errorCode: String? = null, errorMessage: String? = null) = 
-        provisioningTestHelper.simulateError(errorCode, errorMessage)
     
     /**
      * Query the status of a specific token
@@ -339,57 +332,75 @@ class ProvisioningMain(private val context: Context) {
         notifyError(ErrorCodes.ERROR_PUSH_PROVISIONING_FAILED, "Token deletion not fully supported", "Token ID: $tokenReferenceId")
     }
     
-    // MARK: - Private Helper Methods
-    
-    private fun registerActivityResultLauncher(activity: FragmentActivity) {
-        try {
-            if (activity.lifecycle.currentState.isAtLeast(androidx.lifecycle.Lifecycle.State.STARTED)) {
-                Log.w(TAG, "Activity already started, ActivityResultLauncher will be limited")
-                this.provisioningResultLauncher = null
-            } else {
-                this.provisioningResultLauncher = activity.registerForActivityResult(
-                    ActivityResultContracts.StartIntentSenderForResult()
-                ) { result -> handlePushProvisioningResult(result.resultCode, result.data) }
+ 
+    private fun checkPrerequisitesAndProvision(jsonData: String) {
+        // Launch coroutine to handle async operations with early returns
+        CoroutineScope(Dispatchers.Main).launch {
+            try {
+                checkPrerequisitesAndProvisionAsync(jsonData)
+            } catch (e: Exception) {
+                Log.e(TAG, "Error in provisioning prerequisites", e)
+                notifyError(ErrorCodes.ERROR_PUSH_PROVISIONING_FAILED, "Provisioning failed: ${e.message}")
             }
-        } catch (e: IllegalStateException) {
-            Log.w(TAG, "Failed to register ActivityResultLauncher: ${e.message}")
-            this.provisioningResultLauncher = null
         }
     }
     
-    private fun checkPrerequisitesAndProvision(jsonData: String) {
-        isGooglePayAvailable { googlePayAvailable ->
-            if (!googlePayAvailable) {
+    private suspend fun checkPrerequisitesAndProvisionAsync(jsonData: String) {
+        Log.d(TAG, "Checking prerequisites and provisioning")
+        
+        // Skip verification checks if test mode is enabled and APIs are mocked
+        if (TestConfig.enableTestMode && TestConfig.GoogleWalletProvisioning.mockGooglePayApi) {
+            Log.d(TAG, "Skipping Google Pay and TapAndPay verification checks (test mode with mocked APIs)")
+        } else {
+            // Early return if Google Pay not available
+            if (!isGooglePayAvailableAsync()) {
                 notifyError(ErrorCodes.ERROR_GOOGLE_PAY_UNAVAILABLE, "Google Pay not available")
-                return@isGooglePayAvailable
+                return
             }
             
-            isTapAndPayAvailable { tapAndPayAvailable ->
-                if (!tapAndPayAvailable) {
-                    notifyError(ErrorCodes.ERROR_DEVICE_NOT_SUPPORTED, "TapAndPay not available")
-                    return@isTapAndPayAvailable
-                }
-                
-                val response = parsePushProvisioningResponse(jsonData)
-                if (response?.success != true) {
-                    notifyError("ERROR_PARSING_RESPONSE", "Invalid provisioning data")
-                    return@isTapAndPayAvailable
-                }
-                
-                // Delegate to service
-                activity?.let { 
-                    pushProvisioningService.startPushProvisioning(
-                        activity = it,
-                        provisioningData = jsonData,
-                        launcher = provisioningResultLauncher
-                    ) { result ->
-                        result.fold(
-                            onSuccess = { notifySuccess("{\"message\": \"$it\"}") },
-                            onFailure = { notifyError("PROVISIONING_FAILED", "Provisioning failed: ${it.message}") }
-                        )
-                    }
-                } ?: notifyError(ErrorCodes.ERROR_PUSH_PROVISIONING_FAILED, "Activity not available")
+            // Early return if TapAndPay not available
+            if (!isTapAndPayAvailableAsync()) {
+                notifyError(ErrorCodes.ERROR_DEVICE_NOT_SUPPORTED, "TapAndPay not available")
+                return
             }
+        }
+        
+        // Early return if parsing fails
+        val response = parsePushProvisioningResponse(jsonData)
+        if (response == null) {
+            notifyError("ERROR_PARSING_RESPONSE", "Invalid provisioning data")
+            return
+        }
+        
+        // Early return if activity not available
+        val currentActivity = activity
+        if (currentActivity == null) {
+            notifyError(ErrorCodes.ERROR_PUSH_PROVISIONING_FAILED, "Activity not available")
+            return
+        }
+        
+        // Delegate to service
+        pushProvisioningService.startPushProvisioning(
+            activity = currentActivity,
+            provisioningData = response,
+        ) { result ->
+            result.fold(
+                onSuccess = { notifySuccess("{\"message\": \"$it\"}") },
+                onFailure = { notifyError("PROVISIONING_FAILED", "Provisioning failed: ${it.message}") }
+            )
+        }
+    }
+    
+    // Convert callback-based methods to suspend functions
+    private suspend fun isGooglePayAvailableAsync(): Boolean = suspendCoroutine { continuation ->
+        isGooglePayAvailable { isAvailable ->
+            continuation.resume(isAvailable)
+        }
+    }
+    
+    private suspend fun isTapAndPayAvailableAsync(): Boolean = suspendCoroutine { continuation ->
+        isTapAndPayAvailable { isAvailable ->
+            continuation.resume(isAvailable)
         }
     }
     
@@ -414,9 +425,9 @@ class ProvisioningMain(private val context: Context) {
             address2 = it.optString("address2"),
             city = it.optString("city"),
             state = it.optString("state"),
-            countryCode = it.optString("countryCode"),
             postalCode = it.optString("postalCode"),
-            phoneNumber = it.optString("phoneNumber")
+            country = it.optString("country"),
+            phone = it.optString("phone")
         )
     }
     
@@ -444,7 +455,10 @@ class ProvisioningMain(private val context: Context) {
     }
     
     private fun notifySuccess(data: String) {
+        Log.d(TAG, "notifySuccess called with data: $data")
+        Log.d(TAG, "webView is ${if (webView == null) "null" else "available"}")
         webView?.post {
+            Log.d(TAG, "Posting success event to webview: ${AccrueWebEvents.googleWalletProvisioningSuccessFunction}")
             webView?.handleEvent(AccrueWebEvents.googleWalletProvisioningSuccessFunction, data)
         }
     }
@@ -460,7 +474,10 @@ class ProvisioningMain(private val context: Context) {
     }
     
     private fun notifyError(errorJson: String) {
+        Log.d(TAG, "notifyError called with errorJson: $errorJson")
+        Log.d(TAG, "webView is ${if (webView == null) "null" else "available"}")
         webView?.post {
+            Log.d(TAG, "Posting error event to webview: ${AccrueWebEvents.googleWalletProvisioningErrorFunction}")
             webView?.handleEvent(AccrueWebEvents.googleWalletProvisioningErrorFunction, errorJson)
         }
     }

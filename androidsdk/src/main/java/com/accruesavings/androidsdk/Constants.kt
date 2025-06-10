@@ -35,10 +35,14 @@ object TestConfig {
         // If true and test mode is enabled, will bypass actual Google Pay API calls
         @Volatile
         var mockGooglePayApi: Boolean = true
+
+        // If true 
+        @Volatile
+        var mockPushProvisioningPayload: Boolean = false
         
         // Controls whether mock operations succeed or fail
         @Volatile
-        var mockOperationsSucceed: Boolean = true
+        var mockOperationsSucceed: Boolean = false
         
         // Simulated delays in milliseconds (to mimic real-world timing)
         @Volatile
@@ -58,4 +62,6 @@ object SampleData {
 //    const val merchantId = "e510593e-b975-4f94-baa6-2ae42a8fa6f5"
     const val merchantId = "d0069102-e4a1-410b-ad82-ebe278d7785d" //snipes in sandbox
     const val redirectionToken = ""
+    const val phoneNumber = "2035559382"
+    const val referenceId = "othecos-b123"
 }

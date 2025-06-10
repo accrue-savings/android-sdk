@@ -160,6 +160,7 @@ class AccrueWebView @JvmOverloads constructor(
                     }
                     AccrueWebEvents.accrueWalletGoogleProvisioningResponseKey -> {
                         Log.i("AccrueWebView", "Google Wallet Provisioning Response Received")
+                        Log.i("AccrueWebView", "Message: $message")
                         provisioningMain?.startPushProvisioning(message)
                     }
                     else -> Log.w("AccrueWebView", "Unknown message type: $key")

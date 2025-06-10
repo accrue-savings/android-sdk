@@ -8,6 +8,7 @@ import com.accruesavings.androidsdk.provisioning.device.DeviceInfo
 import com.accruesavings.androidsdk.provisioning.error.ErrorHandler
 import com.accruesavings.androidsdk.provisioning.error.ProvisioningError
 import com.accruesavings.androidsdk.provisioning.config.ProvisioningConstants
+import org.json.JSONObject
 import java.util.Random
 
 /**
@@ -23,6 +24,21 @@ class ProvisioningTestHelper(
     
     private val mainHandler = Handler(Looper.getMainLooper())
     private val random = Random()
+    
+    // Callback references for notifying webview
+    private var notifySuccessCallback: ((String) -> Unit)? = null
+    private var notifyErrorCallback: ((String, String, String?) -> Unit)? = null
+    
+    /**
+     * Set the callback functions for notifying the webview
+     */
+    fun setNotificationCallbacks(
+        onSuccess: (String) -> Unit,
+        onError: (String, String, String?) -> Unit
+    ) {
+        notifySuccessCallback = onSuccess
+        notifyErrorCallback = onError
+    }
     
     /**
      * Mock Google Pay availability check
@@ -113,18 +129,6 @@ class ProvisioningTestHelper(
         }
     }
     
-    /**
-     * Mock start push provisioning (for compatibility)
-     */
-    fun mockStartPushProvisioning() {
-        Log.d(TAG, "TEST MODE: Mocking start push provisioning")
-        mockPushProvisioning { result ->
-            result.fold(
-                onSuccess = { Log.d(TAG, "TEST MODE: Start push provisioning succeeded") },
-                onFailure = { Log.d(TAG, "TEST MODE: Start push provisioning failed") }
-            )
-        }
-    }
     
     /**
      * Mock parsing push provisioning response
@@ -138,13 +142,17 @@ class ProvisioningTestHelper(
             return null
         }
         
-        // Create a mock response
+        // Create a mock response with new structure
         return com.accruesavings.androidsdk.PushProvisioningResponse(
-            success = true,
+            cardToken = "mock-card-token-${random.nextInt(10000)}",
+            createdTime = "2024-01-01T00:00:00Z",
+            lastModifiedTime = "2024-01-01T00:00:00Z",
             pushTokenizeRequestData = com.accruesavings.androidsdk.PushTokenizeRequestData(
+                displayName = "Mock Card",
                 opaquePaymentCard = "mock-opaque-payment-card",
                 lastDigits = "1234",
-                tspProvider = "TOKEN_PROVIDER_VISA",
+                network = "Visa",
+                tokenServiceProvider = "TOKEN_PROVIDER_VISA",
                 userAddress = com.accruesavings.androidsdk.UserAddress(
                     name = "John Doe",
                     address1 = "123 Main St",
@@ -152,60 +160,13 @@ class ProvisioningTestHelper(
                     city = "New York",
                     state = "NY",
                     postalCode = "10001",
-                    countryCode = "US",
-                    phoneNumber = "212-555-1234"
+                    country = "US",
+                    phone = "212-555-1234"
                 )
             )
         )
     }
     
-    /**
-     * Manually simulate a successful operation
-     */
-    fun simulateSuccess(successMessage: String = "Mock operation succeeded") {
-        if (!TestConfig.enableTestMode) {
-            Log.w(TAG, "Cannot simulate success because test mode is disabled")
-            return
-        }
-        
-        Log.d(TAG, "TEST MODE: Simulating success response: $successMessage")
-        // Success simulation would typically be handled by the calling code
-    }
-    
-    /**
-     * Manually simulate an error
-     */
-    fun simulateError(errorCode: String? = null, errorMessage: String? = null) {
-        if (!TestConfig.enableTestMode) {
-            Log.w(TAG, "Cannot simulate error because test mode is disabled")
-            return
-        }
-        
-        val code = errorCode ?: TestConfig.GoogleWalletProvisioning.mockErrorCode
-        val message = errorMessage ?: TestConfig.GoogleWalletProvisioning.mockErrorMessage
-        
-        Log.d(TAG, "TEST MODE: Simulating error response with code: $code")
-        runWithMockDelay {
-            val error = ProvisioningError(
-                code = code,
-                message = message,
-                details = "Simulated error for testing"
-            )
-            errorHandler.handleError(error)
-        }
-    }
-    
-    /**
-     * Configure test mode settings
-     */
-    fun setTestMode(enabled: Boolean, mockSuccess: Boolean = true) {
-        TestConfig.enableTestMode = enabled
-        TestConfig.GoogleWalletProvisioning.mockGooglePayApi = enabled
-        TestConfig.GoogleWalletProvisioning.mockOperationsSucceed = mockSuccess
-        
-        Log.d(TAG, "Test mode ${if (enabled) "enabled" else "disabled"}, " +
-                  "operations will ${if (mockSuccess) "succeed" else "fail"}")
-    }
     
     /**
      * Run code with a mock delay to simulate network/processing time

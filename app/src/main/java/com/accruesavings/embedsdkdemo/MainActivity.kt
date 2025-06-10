@@ -60,6 +60,8 @@ class MainActivity : AppCompatActivity() {
 
         sampleDatabutton.setOnClickListener {
             merchantIdInput.setText(SampleData.merchantId)
+            phoneNumberInput.setText(SampleData.phoneNumber)
+            referenceIdInput.setText(SampleData.referenceId)
         }
 
         updateContextButton.setOnClickListener {
@@ -87,13 +89,13 @@ class MainActivity : AppCompatActivity() {
                 .commit()
         }
 
+
         // Create new AccrueWallet instance with early initialization to prevent lifecycle issues
         accrueWallet = AccrueWallet.newInstanceWithEarlyInit(
             activity = this,
             contextData = contextData,
             redirectionToken = redirectionToken,
-            isSandbox = false,
-            url = "https://accrue-embed-git-othecos-google-in-app-accrue-money.vercel.app/webview/",
+            isSandbox = true,
             merchantId = merchantId,
             onAction = mapOf(
                 AccrueAction.SignInButtonClicked to {
