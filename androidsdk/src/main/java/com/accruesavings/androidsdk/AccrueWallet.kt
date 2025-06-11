@@ -156,62 +156,7 @@ class AccrueWallet : Fragment() {
     fun handleEvent(eventName: String, data: String?) {
         webView.handleEvent(eventName, data ?: "{}")
     }
-    
-    /**
-     * Check if Google Pay is available on this device
-     * @param callback Callback with the result of the check
-     */
-    fun isGooglePayAvailable(callback: (Boolean) -> Unit) {
-        provisioningMain?.isGooglePayAvailable(callback) ?: callback(false)
-    }
-    
-    /**
-     * Check if TapAndPay is available on this device for push provisioning
-     * @param callback Callback with the result of the check
-     */
-    fun isTapAndPayAvailable(callback: (Boolean) -> Unit) {
-        provisioningMain?.isTapAndPayAvailable(callback) ?: callback(false)
-    }
-    
-    /**
-     * Query the status of a specific token (simplified version)
-     * @param tokenServiceProvider The TSP constant
-     * @param tokenReferenceId The token reference ID to query
-     * @param callback Callback with status information (isActive, message)
-     */
-    fun getTokenStatus(tokenServiceProvider: Int, tokenReferenceId: String, callback: (Boolean, String?) -> Unit) {
-        provisioningMain?.getTokenStatus(tokenServiceProvider, tokenReferenceId, callback) 
-            ?: callback(false, "Provisioning not initialized")
-    }
-    
-    /**
-     * Check if a token needs activation and handle accordingly
-     * @param tokenServiceProvider The TSP constant
-     * @param tokenReferenceId The token reference ID
-     * @param callback Callback with activation result (isActive, message)
-     */
-    fun checkAndActivateToken(tokenServiceProvider: Int, tokenReferenceId: String, callback: (Boolean, String?) -> Unit) {
-        provisioningMain?.checkAndActivateToken(tokenServiceProvider, tokenReferenceId, callback) 
-            ?: callback(false, "Provisioning not initialized")
-    }
-    
-    /**
-     * Request deletion of a token (shows user confirmation dialog)
-     * @param tokenServiceProvider The TSP constant
-     * @param tokenReferenceId The token reference ID to delete
-     */
-    fun requestDeleteToken(tokenServiceProvider: Int, tokenReferenceId: String) {
-        provisioningMain?.requestDeleteToken(tokenServiceProvider, tokenReferenceId) 
-            ?: Log.w(TAG, "Cannot delete token - Provisioning not initialized")
-    }
-    
-    /**
-     * Get the ProvisioningMain instance for testing purposes
-     * @return The ProvisioningMain instance or null if not initialized
-     */
-    fun getProvisioningMain(): ProvisioningMain? {
-        return provisioningMain
-    }
+
     
     /**
      * Pre-initialize Provisioning to handle ActivityResultLauncher registration
