@@ -81,7 +81,7 @@ class TapAndPayClientManager(private val context: Context) {
     /**
      * Check if Google Play Services is available and up to date
      */
-    private fun isGooglePlayServicesAvailable(): Boolean {
+    fun isGooglePlayServicesAvailable(): Boolean {
         val availability = GoogleApiAvailability.getInstance()
         val resultCode = availability.isGooglePlayServicesAvailable(context)
         return resultCode == com.google.android.gms.common.ConnectionResult.SUCCESS

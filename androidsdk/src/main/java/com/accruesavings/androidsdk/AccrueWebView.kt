@@ -98,6 +98,11 @@ class AccrueWebView @JvmOverloads constructor(
 
         // Load URL
         loadUrl(url)
+        
+        // Automatically send Google Wallet eligibility status after initialization
+        post {
+            sendGoogleWalletEligibilityStatus(isAutomatic = true)
+        }
     }
 
     private class WebAppInterface(
@@ -130,8 +135,13 @@ class AccrueWebView @JvmOverloads constructor(
                 val key = jsonObject.optString("key")
 
                 when (key) {
-                    "AccrueWallet::${AccrueAction.SignInButtonClicked}" -> onAction[AccrueAction.SignInButtonClicked]?.invoke()
-                    "AccrueWallet::${AccrueAction.RegisterButtonClicked}" -> onAction[AccrueAction.RegisterButtonClicked]?.invoke()
+                    AccrueWebEvents.accrueWalletSignInButtonClickedKey -> onAction[AccrueAction.SignInButtonClicked]?.invoke()
+                    AccrueWebEvents.accrueWalletRegisterButtonClickedKey -> onAction[AccrueAction.RegisterButtonClicked]?.invoke()
+                    AccrueWebEvents.accrueWalletGoogleWalletEligibilityCheckKey -> {
+                        Log.i("AccrueWebView", "Google Wallet Eligibility Check Requested")
+                        onAction[AccrueAction.GoogleWalletEligibilityCheck]?.invoke()
+                        webView.sendGoogleWalletEligibilityStatus(isAutomatic = false)
+                    }
                     AccrueWebEvents.accrueWalletGoogleProvisioningRequestedKey -> {
                         Log.i("AccrueWebView", "Google Wallet Provisioning Requested")
                         onAction[AccrueAction.GoogleWalletProvisioningRequested]?.invoke()
@@ -310,5 +320,52 @@ class AccrueWebView @JvmOverloads constructor(
                 window?.["$mappedEventName"]?.($data);
             }
         """.trimIndent(), null)
+    }
+
+    /**
+     * Send Google Wallet eligibility status to the webview
+     * @param isAutomatic Whether this check was triggered automatically or manually
+     */
+    private fun sendGoogleWalletEligibilityStatus(isAutomatic: Boolean) {
+        val logPrefix = if (isAutomatic) "Automatically" else "Manually"
+        Log.d("AccrueWebView", "$logPrefix checking Google Wallet eligibility")
+        
+        // Check if Google Wallet is available and device is eligible
+        provisioningMain?.let { provisioning ->
+            provisioning.checkGoogleWalletEligibility { isEligible, details ->
+                val responseJson = JSONObject().apply {
+                    put("isEligible", isEligible)
+                    put("details", details ?: "")
+                    put("timestamp", System.currentTimeMillis())
+                    put("automatic", isAutomatic)
+                }.toString()
+                
+                Log.i("AccrueWebView", "$logPrefix Google Wallet Eligibility Result: $responseJson")
+                // Send the result to the WebView
+                post {
+                    evaluateJavascript("""
+                        if (typeof window !== "undefined" && typeof window?.["${AccrueWebEvents.googleWalletEligibilityResponseFunction}"] === "function") {
+                            window?.["${AccrueWebEvents.googleWalletEligibilityResponseFunction}"]?.($responseJson);
+                        }
+                    """.trimIndent(), null)
+                }
+            }
+        } ?: run {
+            // If provisioning is not available, return not eligible
+            val responseJson = JSONObject().apply {
+                put("isEligible", false)
+                put("details", "Google Wallet provisioning not available")
+                put("timestamp", System.currentTimeMillis())
+                put("automatic", isAutomatic)
+            }.toString()
+            
+            post {
+                evaluateJavascript("""
+                    if (typeof window !== "undefined" && typeof window?.["${AccrueWebEvents.googleWalletEligibilityResponseFunction}"] === "function") {
+                        window?.["${AccrueWebEvents.googleWalletEligibilityResponseFunction}"]?.($responseJson);
+                    }
+                """.trimIndent(), null)
+            }
+        }
     }
 }

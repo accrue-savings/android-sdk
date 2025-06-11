@@ -103,6 +103,9 @@ class MainActivity : AppCompatActivity() {
                 },
                 AccrueAction.RegisterButtonClicked to {
                     Log.i("AccrueWebView", "REGISTER BUTTON HANDLER ACTIVATED")
+                },
+                AccrueAction.GoogleWalletEligibilityCheck to {
+                    Log.i("AccrueWebView", "GOOGLE WALLET ELIGIBILITY CHECK HANDLER ACTIVATED")
                 }
             )
         )

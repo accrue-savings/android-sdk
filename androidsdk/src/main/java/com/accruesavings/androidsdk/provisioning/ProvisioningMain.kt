@@ -198,6 +198,74 @@ class ProvisioningMain(private val context: Context) {
             notifyError(ErrorCodes.ERROR_GOOGLE_PAY_UNAVAILABLE, "Payments client not initialized")
         }
     }
+
+    /**
+     * Check if device can add cards to Google Wallet (comprehensive eligibility check)
+     */
+    fun checkGoogleWalletEligibility(callback: (Boolean, String?) -> Unit) {
+        Log.d(TAG, "Checking Google Wallet eligibility")
+        
+        // Create a detailed eligibility check
+        val eligibilityDetails = mutableListOf<String>()
+        var isEligible = true
+        
+        // Check if device is an emulator
+        if (tapAndPayClientManager.isEmulator()) {
+            isEligible = false
+            eligibilityDetails.add("Device is an emulator - Google Wallet requires a real device")
+        }
+        
+        // Check NFC support
+        val nfcStatus = environmentService.checkNfcStatus()
+        when (nfcStatus) {
+            NfcStatus.NOT_SUPPORTED -> {
+                isEligible = false
+                eligibilityDetails.add("Device does not support NFC")
+            }
+            NfcStatus.DISABLED -> {
+                isEligible = false
+                eligibilityDetails.add("NFC is disabled - please enable in device settings")
+            }
+            NfcStatus.ENABLED -> {
+                eligibilityDetails.add("NFC is enabled")
+            }
+        }
+        
+        // Check Google Play Services availability
+        if (!tapAndPayClientManager.isGooglePlayServicesAvailable()) {
+            isEligible = false
+            eligibilityDetails.add("Google Play Services not available")
+        } else {
+            eligibilityDetails.add("Google Play Services available")
+        }
+        
+        // Check TapAndPay availability
+        tapAndPayClientManager.isTapAndPayAvailable { tapAndPayAvailable ->
+            if (!tapAndPayAvailable) {
+                isEligible = false
+                eligibilityDetails.add("TapAndPay API not available")
+            } else {
+                eligibilityDetails.add("TapAndPay API available")
+            }
+            
+            // Check Google Pay availability
+            isGooglePayAvailable { googlePayAvailable ->
+                if (!googlePayAvailable) {
+                    isEligible = false
+                    eligibilityDetails.add("Google Pay not available")
+                } else {
+                    eligibilityDetails.add("Google Pay available")
+                }
+                
+                // Final eligibility determination
+                val finalEligible = isEligible && tapAndPayAvailable && googlePayAvailable
+                val details = eligibilityDetails.joinToString("; ")
+                
+                Log.d(TAG, "Google Wallet eligibility check complete. Eligible: $finalEligible, Details: $details")
+                callback(finalEligible, details)
+            }
+        }
+    }
     
     /**
      * Get comprehensive environment information
