@@ -121,6 +121,11 @@ class AccrueWallet : Fragment() {
         }
         provisioningMain?.initialize(requireActivity(), webView, activityResultHandler)
         
+        // Set the ProvisioningMain reference in the WebView
+        provisioningMain?.let { provisioning ->
+            webView.setProvisioningMain(provisioning)
+        }
+        
         // Set layout parameters
         val layoutParams = ViewGroup.LayoutParams(
             ViewGroup.LayoutParams.MATCH_PARENT,

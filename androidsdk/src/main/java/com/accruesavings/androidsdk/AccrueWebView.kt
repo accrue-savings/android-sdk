@@ -66,6 +66,7 @@ class AccrueWebView @JvmOverloads constructor(
 
     private var webAppInterface: WebAppInterface? = null
     private var provisioningMain: ProvisioningMain? = null
+    internal var hasInitialLoadCompleted = false
 
     init {
         setupWebView()
@@ -78,7 +79,7 @@ class AccrueWebView @JvmOverloads constructor(
         settings.domStorageEnabled = true
 //        settings.setSupportMultipleWindows(true)
 //        settings.javaScriptCanOpenWindowsAutomatically = true
-        webViewClient = AccrueWebViewClient()
+        webViewClient = AccrueWebViewClient(this)
         webChromeClient = object : WebChromeClient() {
             override fun onConsoleMessage(consoleMessage: ConsoleMessage): Boolean {
                 Log.d("WebViewConsole", "${consoleMessage.message()} at line ${consoleMessage.lineNumber()} in ${consoleMessage.sourceId()}")
@@ -86,11 +87,8 @@ class AccrueWebView @JvmOverloads constructor(
             }
         }
         
-        // Initialize Google Wallet Provisioning if context is a FragmentActivity
-        if (context is FragmentActivity) {
-            provisioningMain = ProvisioningMain(context)
-            provisioningMain?.initialize(context as FragmentActivity, this)
-        }
+        // Note: Google Wallet Provisioning initialization is handled by AccrueWallet
+        // to avoid duplicate initialization
         
         // Add JavaScript interface and context data
         webAppInterface = WebAppInterface(this.onAction, contextData, provisioningMain, this)
@@ -98,11 +96,6 @@ class AccrueWebView @JvmOverloads constructor(
 
         // Load URL
         loadUrl(url)
-        
-        // Automatically send Google Wallet eligibility status after initialization
-        post {
-            sendGoogleWalletEligibilityStatus(isAutomatic = true)
-        }
     }
 
     private class WebAppInterface(
@@ -182,7 +175,7 @@ class AccrueWebView @JvmOverloads constructor(
     }
 
     // for links that open in new window to work
-    private class AccrueWebViewClient : WebViewClient() {
+    private class AccrueWebViewClient(private val webView: AccrueWebView) : WebViewClient() {
         val TAG: String = "AccrueWebViewClient"
 
         fun isAppDeepLink(url: String): Boolean {
@@ -250,6 +243,21 @@ class AccrueWebView @JvmOverloads constructor(
                 intent.putExtra("url", url)
                 context.startActivity(intent)
             }
+        }
+
+        override fun onPageFinished(view: WebView?, url: String?) {
+            super.onPageFinished(view, url)
+            
+            if (webView.hasInitialLoadCompleted) {
+                return
+            }
+            // Send Google Wallet eligibility status only after the initial page load
+            webView.hasInitialLoadCompleted = true
+            Log.d(TAG, "Initial page load completed, sending Google Wallet eligibility status")
+            webView.post {
+                webView.sendGoogleWalletEligibilityStatus(isAutomatic = true)
+            }
+             
         }
     }
 
@@ -326,9 +334,8 @@ class AccrueWebView @JvmOverloads constructor(
      * Send Google Wallet eligibility status to the webview
      * @param isAutomatic Whether this check was triggered automatically or manually
      */
-    private fun sendGoogleWalletEligibilityStatus(isAutomatic: Boolean) {
-        val logPrefix = if (isAutomatic) "Automatically" else "Manually"
-        Log.d("AccrueWebView", "$logPrefix checking Google Wallet eligibility")
+    internal fun sendGoogleWalletEligibilityStatus(isAutomatic: Boolean) {
+        val logPrefix = if (isAutomatic) "Automatically" else "Manually" 
         
         // Check if Google Wallet is available and device is eligible
         provisioningMain?.let { provisioning ->
@@ -359,6 +366,7 @@ class AccrueWebView @JvmOverloads constructor(
                 put("automatic", isAutomatic)
             }.toString()
             
+            Log.i("AccrueWebView", "$logPrefix Google Wallet Eligibility Result: $responseJson")
             post {
                 evaluateJavascript("""
                     if (typeof window !== "undefined" && typeof window?.["${AccrueWebEvents.googleWalletEligibilityResponseFunction}"] === "function") {
@@ -367,5 +375,13 @@ class AccrueWebView @JvmOverloads constructor(
                 """.trimIndent(), null)
             }
         }
+    }
+
+    /**
+     * Update the ProvisioningMain reference
+     * This method should be called after ProvisioningMain is initialized
+     */
+    internal fun setProvisioningMain(provisioning: ProvisioningMain) {
+        this.provisioningMain = provisioning 
     }
 }
