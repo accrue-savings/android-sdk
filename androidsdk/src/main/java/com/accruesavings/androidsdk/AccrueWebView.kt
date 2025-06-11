@@ -91,7 +91,7 @@ class AccrueWebView @JvmOverloads constructor(
         // to avoid duplicate initialization
         
         // Add JavaScript interface and context data
-        webAppInterface = WebAppInterface(this.onAction, contextData, provisioningMain, this)
+        webAppInterface = WebAppInterface(this.onAction, contextData, this)
         addJavascriptInterface(webAppInterface!!, AccrueWebEvents.eventHandlerName)
 
         // Load URL
@@ -101,7 +101,6 @@ class AccrueWebView @JvmOverloads constructor(
     private class WebAppInterface(
         private val onAction: Map<AccrueAction, () -> Unit> = emptyMap(),
         private var _contextData: AccrueContextData?,
-        private val provisioningMain: ProvisioningMain?,
         private val webView: AccrueWebView
     ) {
         var contextData: AccrueContextData?
@@ -139,14 +138,22 @@ class AccrueWebView @JvmOverloads constructor(
                         Log.i("AccrueWebView", "Google Wallet Provisioning Requested")
                         onAction[AccrueAction.GoogleWalletProvisioningRequested]?.invoke()
                         
+                        Log.i("AccrueWebView", "provisioningMain is ${if (webView.provisioningMain == null) "NULL" else "AVAILABLE"}")
                         // Get device info and send it to WebView to generate token
-                        provisioningMain?.let { provisioning ->
+                        webView.provisioningMain?.let { provisioning ->
                             provisioning.getDeviceInfo { deviceInfo ->
                                 val deviceInfoJson = JSONObject().apply {
                                     put("deviceId", deviceInfo.deviceId)
                                     put("deviceType", deviceInfo.deviceType)
                                     put("provisioningAppVersion", deviceInfo.provisioningAppVersion)
                                     put("walletAccountId", deviceInfo.walletAccountId)
+                                    
+                                    // Add mocked data if present in the original message
+                                    val originalData = jsonObject.optJSONObject("data")
+                                    if (originalData != null) {
+                                        put("mockedData", originalData)
+                                        Log.i("AccrueWebView", "Added mocked data to device info")
+                                    }
                                 }.toString()
                                 
                                 Log.i("AccrueWebView", "Device Info: $deviceInfoJson")
@@ -164,7 +171,7 @@ class AccrueWebView @JvmOverloads constructor(
                     AccrueWebEvents.accrueWalletGoogleProvisioningResponseKey -> {
                         Log.i("AccrueWebView", "Google Wallet Provisioning Response Received")
                         Log.i("AccrueWebView", "Message: $message")
-                        provisioningMain?.startPushProvisioning(message)
+                        webView.provisioningMain?.startPushProvisioning(message)
                     }
                     else -> Log.w("AccrueWebView", "Unknown message type: $key")
                 }
