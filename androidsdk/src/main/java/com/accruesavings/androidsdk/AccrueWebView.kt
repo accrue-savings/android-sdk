@@ -148,11 +148,11 @@ class AccrueWebView @JvmOverloads constructor(
                                     put("provisioningAppVersion", deviceInfo.provisioningAppVersion)
                                     put("walletAccountId", deviceInfo.walletAccountId)
                                     
-                                    // Add mocked data if present in the original message
+                                    // Add mocked data if it contains tokenId
                                     val originalData = jsonObject.optJSONObject("data")
-                                    if (originalData != null) {
+                                    if (originalData != null && originalData.has("tokenId")) {
                                         put("mockedData", originalData)
-                                        Log.i("AccrueWebView", "Added mocked data to device info")
+                                        Log.i("AccrueWebView", "Added mocked data to device info with tokenId")
                                     }
                                 }.toString()
                                 
