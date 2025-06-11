@@ -48,7 +48,7 @@ dependencies {
     implementation("androidx.lifecycle:lifecycle-livedata-ktx:2.7.0")
     
     implementation(project(":androidsdk"))
-//    implementation("com.accruesavings:androidsdk:v1.0.12")
+    // implementation("com.accruesavings:androidsdk:v1.0.14")
     implementation(libs.androidx.ui.android)
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.androidx.lifecycle.viewmodel.ktx)
