@@ -6,6 +6,7 @@ import com.google.android.gms.tapandpay.TapAndPay
 import com.google.android.gms.tapandpay.issuer.PushTokenizeRequest
 import com.google.android.gms.tapandpay.issuer.UserAddress as TapAndPayUserAddress
 import com.accruesavings.androidsdk.provisioning.error.ErrorCodes
+import com.accruesavings.androidsdk.provisioning.config.ProvisioningConstants
 import com.accruesavings.androidsdk.provisioning.error.ErrorHandler
 import com.accruesavings.androidsdk.provisioning.error.ProvisioningError
 import com.accruesavings.androidsdk.PushProvisioningResponse
@@ -85,18 +86,19 @@ class PushProvisioningService(
     
     /**
      * Decode the Opaque Payment Card data
+     * Following Google's specification: treat OPC as direct string bytes
      */
     private fun decodeOpaquePaymentCard(opcData: String): ByteArray {
-        return try {
-            // Try Base64 decoding first (most common format)
-            Base64.decode(opcData, Base64.DEFAULT)
-        } catch (e: Exception) {
-            Log.w(TAG, "Failed to decode OPC as Base64, trying direct conversion")
+        return if (opcData.isEmpty()) {
+            Log.w(TAG, "Empty OPC data provided")
+            ByteArray(0)
+        } else {
             try {
-                // Fallback to direct byte array conversion
+                // Follow Google's approach: convert string directly to bytes
+                // This matches Google's example: opcHelper.getOPC().getBytes()
                 opcData.toByteArray(Charsets.UTF_8)
-            } catch (e2: Exception) {
-                Log.e(TAG, "Failed to decode OPC data", e2)
+            } catch (e: Exception) {
+                Log.e(TAG, "Failed to convert OPC data to bytes", e)
                 ByteArray(0)
             }
         }
@@ -157,8 +159,6 @@ class PushProvisioningService(
         request: PushTokenizeRequest,
         callback: (Result<String>) -> Unit
     ) {
-
-
         clientManager.tapAndPayClient?.let { client ->
             try {
                 Log.d(TAG, "Calling TapAndPay pushTokenize")
@@ -167,7 +167,7 @@ class PushProvisioningService(
                 client.pushTokenize(
                     activity,
                     request,
-                    ErrorCodes.PUSH_PROVISION_REQUEST_CODE
+                    ProvisioningConstants.PUSH_PROVISION_REQUEST_CODE
                 )
                 
                 Log.d(TAG, "Push provisioning request sent successfully")

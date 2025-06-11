@@ -9,6 +9,8 @@ object ProvisioningConstants {
     const val PUSH_PROVISION_REQUEST_CODE = 1001
     const val CREATE_WALLET_REQUEST_CODE = 1002
     const val DELETE_TOKEN_REQUEST_CODE = 1003
+    const val SET_DEFAULT_PAYMENTS_REQUEST_CODE = 1005
+    const val VIEW_TOKEN_REQUEST_CODE = 1007
     
     // Network type constants
     object Networks {

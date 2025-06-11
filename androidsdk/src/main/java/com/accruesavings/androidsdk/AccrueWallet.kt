@@ -8,6 +8,7 @@ import android.view.View
 import android.view.ViewGroup
 import android.webkit.WebView
 import androidx.fragment.app.Fragment
+import com.accruesavings.androidsdk.provisioning.core.ActivityResultHandler
 
 class AccrueWallet : Fragment() {
     val TAG: String = "AccrueWallet"
@@ -25,6 +26,7 @@ class AccrueWallet : Fragment() {
         }
     private lateinit var webView: AccrueWebView
     private var provisioningMain: ProvisioningMain? = null
+    private var activityResultHandler: ActivityResultHandler? = null
 
     companion object {
         fun newInstance(
@@ -93,6 +95,11 @@ class AccrueWallet : Fragment() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         
+        // Initialize ActivityResultHandler for Google Pay operations
+        activityResultHandler = ActivityResultHandler(this) { requestCode, resultCode, data ->
+            provisioningMain?.handleActivityResult(requestCode, resultCode, data)
+        }
+        
         // Pre-initialize Provisioning if not already done
         if (provisioningMain == null) {
             preInitializeProvisioning()
@@ -112,7 +119,7 @@ class AccrueWallet : Fragment() {
         if (provisioningMain == null) {
             provisioningMain = ProvisioningMain(requireContext())
         }
-        provisioningMain?.initialize(requireActivity(), webView)
+        provisioningMain?.initialize(requireActivity(), webView, activityResultHandler)
         
         // Set layout parameters
         val layoutParams = ViewGroup.LayoutParams(
@@ -227,5 +234,6 @@ class AccrueWallet : Fragment() {
         
         // Clean up Provisioning resources
         provisioningMain?.cleanup()
+        activityResultHandler = null
     }
 }
