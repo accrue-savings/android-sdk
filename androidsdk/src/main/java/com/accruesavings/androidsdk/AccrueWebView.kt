@@ -142,29 +142,34 @@ class AccrueWebView @JvmOverloads constructor(
                         // Get device info and send it to WebView to generate token
                         webView.provisioningMain?.let { provisioning ->
                             provisioning.getDeviceInfo { deviceInfo ->
-                                val deviceInfoJson = JSONObject().apply {
-                                    put("deviceId", deviceInfo.deviceId)
-                                    put("deviceType", deviceInfo.deviceType)
-                                    put("provisioningAppVersion", deviceInfo.provisioningAppVersion)
-                                    put("walletAccountId", deviceInfo.walletAccountId)
-                                    
-                                    // Add mocked data if it contains tokenId
-                                    val originalData = jsonObject.optJSONObject("data")
-                                    if (originalData != null && originalData.has("tokenId")) {
-                                        put("mockedData", originalData)
-                                        Log.i("AccrueWebView", "Added mocked data to device info with tokenId")
-                                    }
-                                }.toString()
-                                
-                                Log.i("AccrueWebView", "Device Info: $deviceInfoJson")
-                                // We need to get this to the main thread to evaluate JavaScript
-                                webView.post {
-                                    webView.evaluateJavascript("""
-                                        if (typeof window !== "undefined" && typeof window?.["${AccrueWebEvents.generateGoogleWalletProvisioningTokenFunction}"] === "function") {
-                                            window?.["${AccrueWebEvents.generateGoogleWalletProvisioningTokenFunction}"]?.($deviceInfoJson);
+                                deviceInfo?.let {
+                                    val deviceInfoJson = JSONObject().apply {
+                                        put("deviceId", it.deviceId)
+                                        put("deviceType", it.deviceType)
+                                        put("provisioningAppVersion", it.provisioningAppVersion)
+                                        put("walletAccountId", it.walletAccountId)
+                                        
+                                        // Add mocked data if it contains tokenId
+                                        val originalData = jsonObject.optJSONObject("data")
+                                        if (originalData != null && originalData.has("tokenId")) {
+                                            put("mockedData", originalData)
+                                            Log.i("AccrueWebView", "Added mocked data to device info with tokenId")
                                         }
-                                    """.trimIndent(), null)
-                                }
+                                    }.toString()
+                                    
+                                    Log.i("AccrueWebView", "Device Info: $deviceInfoJson")
+                                    // We need to get this to the main thread to evaluate JavaScript
+                                    webView.post {
+                                        webView.evaluateJavascript("""
+                                            if (typeof window !== "undefined" && typeof window?.["${AccrueWebEvents.generateGoogleWalletProvisioningTokenFunction}"] === "function") {
+                                                window?.["${AccrueWebEvents.generateGoogleWalletProvisioningTokenFunction}"]?.($deviceInfoJson);
+                                            }
+                                        """.trimIndent(), null)
+                                    }
+                                } ?: provisioning.notifyError(
+                                    com.accruesavings.androidsdk.provisioning.error.ErrorCodes.ERROR_DEVICE_INFO_UNAVAILABLE,
+                                    "Device info is null, cannot proceed with provisioning request."
+                                )
                             }
                         }
                     }

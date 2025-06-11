@@ -299,20 +299,19 @@ class ProvisioningMain(private val context: Context) {
     /**
      * Get device information for provisioning
      */
-    fun getDeviceInfo(callback: (DeviceInfo) -> Unit) {
+    fun getDeviceInfo(callback: (DeviceInfo?) -> Unit) {
         Log.d(TAG, "Getting device information")
         
         tapAndPayClientManager.getActiveWalletId(
             onSuccess = { walletId ->
                 deviceInfoService.getDeviceInfo(walletId) { newInfo ->
                     val legacyInfo = newInfo?.let { convertToLegacyDeviceInfo(it) }
-                        ?: createFallbackDeviceInfo(walletId)
                     callback(legacyInfo)
                 }
             },
             onFailure = { 
-                Log.w(TAG, "Failed to get wallet ID, using fallback device info")
-                callback(createFallbackDeviceInfo("unknown"))
+                Log.w(TAG, "Failed to get wallet ID, returning null device info")
+                callback(null)
             }
         )
     }
@@ -708,13 +707,6 @@ class ProvisioningMain(private val context: Context) {
         walletAccountId = newInfo.walletAccountId
     )
     
-    private fun createFallbackDeviceInfo(walletId: String) = DeviceInfo(
-        deviceId = "unknown",
-        deviceType = ProvisioningConstants.DeviceTypes.MOBILE_PHONE,
-        provisioningAppVersion = ProvisioningConstants.Defaults.UNKNOWN_VERSION,
-        walletAccountId = walletId
-    )
-    
     private fun parseUserAddress(json: JSONObject?) = json?.let {
         UserAddress(
             name = it.optString("name"),
@@ -748,7 +740,7 @@ class ProvisioningMain(private val context: Context) {
     
 
     
-    private fun notifySuccess(data: String) {
+    internal fun notifySuccess(data: String) {
         Log.d(TAG, "notifySuccess called with data: $data")
         Log.d(TAG, "webView is ${if (webView == null) "null" else "available"}")
         webView?.post {
@@ -757,7 +749,7 @@ class ProvisioningMain(private val context: Context) {
         }
     }
     
-    private fun notifyError(code: String, message: String, details: String? = null) {
+    internal fun notifyError(code: String, message: String, details: String? = null) {
         val error = JSONObject().apply {
             put("code", code)
             put("message", message)
