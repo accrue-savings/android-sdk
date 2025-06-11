@@ -6,10 +6,7 @@ import android.content.Intent
 import android.util.Log 
 import androidx.fragment.app.FragmentActivity
 import com.google.android.gms.common.api.Status
-import com.google.android.gms.wallet.PaymentsClient
-import com.google.android.gms.wallet.Wallet
-import com.google.android.gms.wallet.WalletConstants
-import com.google.android.gms.wallet.IsReadyToPayRequest
+
 import com.google.android.gms.tapandpay.TapAndPay
 import com.google.android.gms.tapandpay.TapAndPayStatusCodes
 import com.google.android.gms.tapandpay.issuer.TokenInfo
@@ -97,7 +94,6 @@ class ProvisioningMain(private val context: Context) {
     private val TAG = ProvisioningConstants.LogTags.MAIN
     
     // Core components
-    private var paymentsClient: PaymentsClient? = null
     private var webView: AccrueWebView? = null
     private var activity: FragmentActivity? = null
     
@@ -123,12 +119,6 @@ class ProvisioningMain(private val context: Context) {
         this.activityResultHandler = activityResultHandler
         
         Log.d(TAG, "Initializing ProvisioningMain")
-        
-        // Initialize Google Pay client
-        val walletOptions = Wallet.WalletOptions.Builder()
-            .setEnvironment(WalletConstants.ENVIRONMENT_TEST)
-            .build()
-        paymentsClient = Wallet.getPaymentsClient(context, walletOptions)
         
         // Initialize specialized services
         errorHandler = ErrorHandler(webView)
@@ -178,26 +168,7 @@ class ProvisioningMain(private val context: Context) {
         tapAndPayClientManager.isTapAndPayAvailable(callback)
     }
     
-    /**
-     * Check if Google Pay is available on this device
-     */
-    fun isGooglePayAvailable(callback: (Boolean) -> Unit) {
-        Log.d(TAG, "Checking Google Pay availability")
-        
-        paymentsClient?.let { client ->
-            val request = IsReadyToPayRequest.fromJson(createIsReadyToPayRequest().toString())
-            client.isReadyToPay(request)
-                .addOnSuccessListener { callback(it) }
-                .addOnFailureListener { 
-                    Log.e(TAG, "Failed to check Google Pay availability", it)
-                    callback(false)
-                    notifyError(ErrorCodes.ERROR_GOOGLE_PAY_UNAVAILABLE, "Failed to check Google Pay availability: ${it.message}")
-                }
-        } ?: run {
-            callback(false)
-            notifyError(ErrorCodes.ERROR_GOOGLE_PAY_UNAVAILABLE, "Payments client not initialized")
-        }
-    }
+
 
     /**
      * Check if device can add cards to Google Wallet (comprehensive eligibility check)
@@ -248,22 +219,12 @@ class ProvisioningMain(private val context: Context) {
                 eligibilityDetails.add("TapAndPay API available")
             }
             
-            // Check Google Pay availability
-            isGooglePayAvailable { googlePayAvailable ->
-                if (!googlePayAvailable) {
-                    isEligible = false
-                    eligibilityDetails.add("Google Pay not available")
-                } else {
-                    eligibilityDetails.add("Google Pay available")
-                }
-                
-                // Final eligibility determination
-                val finalEligible = isEligible && tapAndPayAvailable && googlePayAvailable
-                val details = eligibilityDetails.joinToString("; ")
-                
-                Log.d(TAG, "Google Wallet eligibility check complete. Eligible: $finalEligible, Details: $details")
-                callback(finalEligible, details)
-            }
+            // Final eligibility determination
+            val finalEligible = isEligible && tapAndPayAvailable
+            val details = eligibilityDetails.joinToString("; ")
+            
+            Log.d(TAG, "Google Wallet eligibility check complete. Eligible: $finalEligible, Details: $details")
+            callback(finalEligible, details)
         }
     }
     
@@ -375,12 +336,6 @@ class ProvisioningMain(private val context: Context) {
 
     private suspend fun checkPrerequisitesAndProvision(jsonData: String) {
         Log.d(TAG, "Checking prerequisites and provisioning")
-        
-        // Early return if Google Pay not available
-        if (!isGooglePayAvailableAsync()) {
-            notifyError(ErrorCodes.ERROR_GOOGLE_PAY_UNAVAILABLE, "Google Pay not available")
-            return
-        }
         
         // Early return if TapAndPay not available
         if (!isTapAndPayAvailableAsync()) {
@@ -740,12 +695,6 @@ class ProvisioningMain(private val context: Context) {
     }
     
     // Convert callback-based methods to suspend functions
-    private suspend fun isGooglePayAvailableAsync(): Boolean = suspendCoroutine { continuation ->
-        isGooglePayAvailable { isAvailable ->
-            continuation.resume(isAvailable)
-        }
-    }
-    
     private suspend fun isTapAndPayAvailableAsync(): Boolean = suspendCoroutine { continuation ->
         isTapAndPayAvailable { isAvailable ->
             continuation.resume(isAvailable)
@@ -797,28 +746,7 @@ class ProvisioningMain(private val context: Context) {
         }
     }
     
-    private fun createIsReadyToPayRequest() = JSONObject().apply {
-        put("apiVersion", 2)
-        put("apiVersionMinor", 0)
-        put("allowedPaymentMethods", JSONArray().apply {
-            put(JSONObject().apply {
-                put("type", "CARD")
-                put("parameters", JSONObject().apply {
-                    put("allowedAuthMethods", JSONArray().apply {
-                        put("PAN_ONLY")
-                        put("CRYPTOGRAM_3DS")
-                    })
-                    put("allowedCardNetworks", JSONArray().apply {
-                        put("AMEX")
-                        put("DISCOVER")
-                        put("JCB")
-                        put("MASTERCARD")
-                        put("VISA")
-                    })
-                })
-            })
-        })
-    }
+
     
     private fun notifySuccess(data: String) {
         Log.d(TAG, "notifySuccess called with data: $data")
