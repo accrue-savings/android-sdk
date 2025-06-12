@@ -178,6 +178,20 @@ class AccrueWebView @JvmOverloads constructor(
                         Log.i("AccrueWebView", "Message: $message")
                         webView.provisioningMain?.startPushProvisioning(message)
                     }
+                    AccrueWebEvents.accrueWalletGoogleWalletProvisioningStatusRequestedKey -> {
+                        Log.i("AccrueWebView", "Google Wallet Provisioning Status Request Received")
+                        Log.i("AccrueWebView", "Message: $message")
+                        webView.provisioningMain?.checkTokensInActiveWallet(message) { response ->
+                            Log.i("AccrueWebView", "Token status response received: $response")
+                            webView.post {
+                                webView.evaluateJavascript("""
+                                    if (typeof window !== "undefined" && typeof window?.["${AccrueWebEvents.googleWalletProvisioningStatusResponseFunction}"] === "function") {
+                                        window?.["${AccrueWebEvents.googleWalletProvisioningStatusResponseFunction}"]?.($response);
+                                    }
+                                """.trimIndent(), null)
+                            }
+                        }
+                    }
                     else -> Log.w("AccrueWebView", "Unknown message type: $key")
                 }
             } catch (e: JSONException) {

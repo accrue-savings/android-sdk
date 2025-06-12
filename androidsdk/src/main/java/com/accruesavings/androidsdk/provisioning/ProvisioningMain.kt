@@ -767,4 +767,163 @@ class ProvisioningMain(private val context: Context) {
             webView?.handleEvent(AccrueWebEvents.googleWalletProvisioningErrorFunction, errorJson)
         }
     }
+    
+    /**
+     * Check which tokens from the provided list are present in the active Google Pay wallet
+     * This method is called by WebView with token IDs from the TSP backend
+     */
+    fun checkTokensInActiveWallet(jsonData: String, callback: (String) -> Unit) {
+        Log.d(TAG, "Checking tokens in active wallet")
+        
+        try {
+            val json = JSONObject(jsonData)
+            val data = json.optJSONObject("data")
+            val tokenIds = data?.optJSONArray("tokenIds")
+            
+            if (tokenIds == null || tokenIds.length() == 0) {
+                val error = JSONObject().apply {
+                    put("success", false)
+                    put("error", JSONObject().apply {
+                        put("code", "INVALID_REQUEST")
+                        put("message", "No token IDs provided")
+                        put("timestamp", System.currentTimeMillis())
+                    })
+                }
+                callback(error.toString())
+                return
+            }
+            
+            val responseBuilder = JSONObject()
+            val tokenResults = JSONArray()
+            var completedChecks = 0
+            val totalTokens = tokenIds.length()
+            
+            // Get active wallet ID for context
+            tapAndPayClientManager.getActiveWalletId(
+                onSuccess = { activeWalletId ->
+                    responseBuilder.put("activeWalletId", activeWalletId)
+                    
+                    // Process each token
+                    for (i in 0 until totalTokens) {
+                        val tokenObj = tokenIds.getJSONObject(i)
+                        val tokenId = tokenObj.getString("tokenId")
+                        val tspString = tokenObj.optString("tokenServiceProvider", "TOKEN_PROVIDER_VISA")
+                        val networkString = tokenObj.optString("network", "VISA")
+                        
+                        val tsp = mapTokenServiceProviderToConstant(tspString)
+                        val network = mapNetworkToTapAndPayConstant(networkString)
+                        
+                        Log.d(TAG, "Checking token: $tokenId (TSP: $tsp, Network: $network)")
+                        
+                        // Check token status
+                        tokenManagementService.getTokenStatus(tsp, tokenId) { tokenStatus ->
+                            val tokenResult = JSONObject().apply {
+                                put("tokenId", tokenId)
+                                put("tokenServiceProvider", tspString)
+                                put("network", networkString)
+                                
+                                if (tokenStatus != null) {
+                                    val isActive = tokenStatus.tokenState == TapAndPay.TOKEN_STATE_ACTIVE
+                                    put("isInActiveWallet", true)
+                                    put("tokenState", tokenStatus.tokenState)
+                                    put("tokenStateDescription", tokenManagementService.getTokenStateDescription(tokenStatus.tokenState))
+                                    put("canMakePayments", isActive)
+                                } else {
+                                    put("isInActiveWallet", false)
+                                    put("reason", "TOKEN_NOT_FOUND")
+                                    put("canMakePayments", false)
+                                }
+                            }
+                            
+                            tokenResults.put(tokenResult)
+                            completedChecks++
+                            
+                            // If all tokens have been processed, send the response
+                            if (completedChecks == totalTokens) {
+                                val response = buildTokenStatusResponse(responseBuilder, tokenResults, totalTokens)
+                                callback(response)
+                            }
+                        }
+                    }
+                },
+                onFailure = { 
+                    Log.w(TAG, "Failed to get active wallet ID")
+                    responseBuilder.put("activeWalletId", null)
+                    
+                    // Still process tokens without wallet ID
+                    for (i in 0 until totalTokens) {
+                        val tokenObj = tokenIds.getJSONObject(i)
+                        val tokenId = tokenObj.getString("tokenId")
+                        val tspString = tokenObj.optString("tokenServiceProvider", "TOKEN_PROVIDER_VISA")
+                        val networkString = tokenObj.optString("network", "VISA")
+                        
+                        val tsp = mapTokenServiceProviderToConstant(tspString)
+                        
+                        tokenManagementService.getTokenStatus(tsp, tokenId) { tokenStatus ->
+                            val tokenResult = JSONObject().apply {
+                                put("tokenId", tokenId)
+                                put("tokenServiceProvider", tspString)
+                                put("network", networkString)
+                                
+                                if (tokenStatus != null) {
+                                    val isActive = tokenStatus.tokenState == TapAndPay.TOKEN_STATE_ACTIVE
+                                    put("isInActiveWallet", true)
+                                    put("tokenState", tokenStatus.tokenState)
+                                    put("tokenStateDescription", tokenManagementService.getTokenStateDescription(tokenStatus.tokenState))
+                                    put("canMakePayments", isActive)
+                                } else {
+                                    put("isInActiveWallet", false)
+                                    put("reason", "TOKEN_NOT_FOUND")
+                                    put("canMakePayments", false)
+                                }
+                            }
+                            
+                            tokenResults.put(tokenResult)
+                            completedChecks++
+                            
+                            if (completedChecks == totalTokens) {
+                                val response = buildTokenStatusResponse(responseBuilder, tokenResults, totalTokens)
+                                callback(response)
+                            }
+                        }
+                    }
+                }
+            )
+            
+        } catch (e: Exception) {
+            Log.e(TAG, "Error parsing token status request", e)
+            val error = JSONObject().apply {
+                put("success", false)
+                put("error", JSONObject().apply {
+                    put("code", "PARSING_ERROR")
+                    put("message", "Failed to parse token status request: ${e.message}")
+                    put("timestamp", System.currentTimeMillis())
+                })
+            }
+            callback(error.toString())
+        }
+    }
+    
+    private fun buildTokenStatusResponse(responseBuilder: JSONObject, tokenResults: JSONArray, totalTokens: Int): String {
+        val foundInWallet = (0 until tokenResults.length()).count { i ->
+            tokenResults.getJSONObject(i).optBoolean("isInActiveWallet", false)
+        }
+        val alreadyProvisioned = (0 until tokenResults.length()).count { i ->
+            tokenResults.getJSONObject(i).optBoolean("canMakePayments", false)
+        }
+        
+        responseBuilder.apply {
+            put("tokenResults", tokenResults)
+            put("summary", JSONObject().apply {
+                put("totalChecked", totalTokens)
+                put("foundInWallet", foundInWallet)
+                put("alreadyProvisioned", alreadyProvisioned)
+            })
+            put("timestamp", System.currentTimeMillis())
+            put("success", true)
+        }
+        
+        Log.d(TAG, "Token status check completed: $foundInWallet/$totalTokens tokens found in wallet")
+        return responseBuilder.toString()
+    }
 } 
