@@ -14,6 +14,13 @@ pluginManagement {
         }
         mavenCentral()
         gradlePluginPortal()
+        // Local repository for tap-and-pay SDK
+        flatDir {
+            dirs("tap-and-pay")
+        }
+        maven {
+            url = uri("file://${settingsDir}/tap-and-pay")
+        }
     }
 }
 
@@ -22,6 +29,13 @@ dependencyResolutionManagement {
     repositories {
         google()
         mavenCentral()
+        // Local repository for tap-and-pay SDK
+        flatDir {
+            dirs("tap-and-pay")
+        }
+        maven {
+            url = uri("file://${settingsDir}/tap-and-pay")
+        }
         maven {
             name = "GitHubPackages"
             url = uri("https://maven.pkg.github.com/accrue-savings/android-sdk")

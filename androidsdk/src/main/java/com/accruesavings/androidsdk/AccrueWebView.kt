@@ -18,6 +18,7 @@ import org.json.JSONException
 import org.json.JSONObject
 import androidx.browser.customtabs.CustomTabsIntent
 import androidx.core.net.toUri
+import androidx.fragment.app.FragmentActivity
 
 fun contextToJson(contextData: AccrueContextData?): String {
     if(contextData === null) {
@@ -64,6 +65,8 @@ class AccrueWebView @JvmOverloads constructor(
 ) : WebView(context) {
 
     private var webAppInterface: WebAppInterface? = null
+    private var provisioningMain: ProvisioningMain? = null
+    internal var hasInitialLoadCompleted = false
 
     init {
         setupWebView()
@@ -76,15 +79,19 @@ class AccrueWebView @JvmOverloads constructor(
         settings.domStorageEnabled = true
 //        settings.setSupportMultipleWindows(true)
 //        settings.javaScriptCanOpenWindowsAutomatically = true
-        webViewClient = AccrueWebViewClient()
+        webViewClient = AccrueWebViewClient(this)
         webChromeClient = object : WebChromeClient() {
             override fun onConsoleMessage(consoleMessage: ConsoleMessage): Boolean {
                 Log.d("WebViewConsole", "${consoleMessage.message()} at line ${consoleMessage.lineNumber()} in ${consoleMessage.sourceId()}")
                 return true
             }
         }
+        
+        // Note: Google Wallet Provisioning initialization is handled by AccrueWallet
+        // to avoid duplicate initialization
+        
         // Add JavaScript interface and context data
-        webAppInterface = WebAppInterface(this.onAction, contextData)
+        webAppInterface = WebAppInterface(this.onAction, contextData, this)
         addJavascriptInterface(webAppInterface!!, AccrueWebEvents.eventHandlerName)
 
         // Load URL
@@ -93,7 +100,8 @@ class AccrueWebView @JvmOverloads constructor(
 
     private class WebAppInterface(
         private val onAction: Map<AccrueAction, () -> Unit> = emptyMap(),
-        private var _contextData: AccrueContextData?
+        private var _contextData: AccrueContextData?,
+        private val webView: AccrueWebView
     ) {
         var contextData: AccrueContextData?
             get() = _contextData
@@ -119,8 +127,71 @@ class AccrueWebView @JvmOverloads constructor(
                 val key = jsonObject.optString("key")
 
                 when (key) {
-                    "AccrueWallet::${AccrueAction.SignInButtonClicked}" -> onAction[AccrueAction.SignInButtonClicked]?.invoke()
-                    "AccrueWallet::${AccrueAction.RegisterButtonClicked}" -> onAction[AccrueAction.RegisterButtonClicked]?.invoke()
+                    AccrueWebEvents.accrueWalletSignInButtonClickedKey -> onAction[AccrueAction.SignInButtonClicked]?.invoke()
+                    AccrueWebEvents.accrueWalletRegisterButtonClickedKey -> onAction[AccrueAction.RegisterButtonClicked]?.invoke()
+                    AccrueWebEvents.accrueWalletGoogleWalletEligibilityCheckKey -> {
+                        Log.i("AccrueWebView", "Google Wallet Eligibility Check Requested")
+                        onAction[AccrueAction.GoogleWalletEligibilityCheck]?.invoke()
+                        webView.sendGoogleWalletEligibilityStatus(isAutomatic = false)
+                    }
+                    AccrueWebEvents.accrueWalletGoogleProvisioningRequestedKey -> {
+                        Log.i("AccrueWebView", "Google Wallet Provisioning Requested")
+                        onAction[AccrueAction.GoogleWalletProvisioningRequested]?.invoke()
+                        
+                        Log.i("AccrueWebView", "provisioningMain is ${if (webView.provisioningMain == null) "NULL" else "AVAILABLE"}")
+                        // Get device info and send it to WebView to generate token
+                        webView.provisioningMain?.let { provisioning ->
+                            provisioning.getDeviceInfo { deviceInfo ->
+                                deviceInfo?.let {
+                                    val deviceInfoJson = JSONObject().apply {
+                                        put("deviceId", it.deviceId)
+                                        put("deviceType", it.deviceType)
+                                        put("provisioningAppVersion", it.provisioningAppVersion)
+                                        put("walletAccountId", it.walletAccountId)
+                                        
+                                        // Add mocked data if it contains tokenId
+                                        val originalData = jsonObject.optJSONObject("data")
+                                        if (originalData != null && originalData.has("tokenId")) {
+                                            put("mockedData", originalData)
+                                            Log.i("AccrueWebView", "Added mocked data to device info with tokenId")
+                                        }
+                                    }.toString()
+                                    
+                                    Log.i("AccrueWebView", "Device Info: $deviceInfoJson")
+                                    // We need to get this to the main thread to evaluate JavaScript
+                                    webView.post {
+                                        webView.evaluateJavascript("""
+                                            if (typeof window !== "undefined" && typeof window?.["${AccrueWebEvents.generateGoogleWalletProvisioningTokenFunction}"] === "function") {
+                                                window?.["${AccrueWebEvents.generateGoogleWalletProvisioningTokenFunction}"]?.($deviceInfoJson);
+                                            }
+                                        """.trimIndent(), null)
+                                    }
+                                } ?: provisioning.notifyError(
+                                    com.accruesavings.androidsdk.provisioning.error.ErrorCodes.ERROR_DEVICE_INFO_UNAVAILABLE,
+                                    "Device info is null, cannot proceed with provisioning request."
+                                )
+                            }
+                        }
+                    }
+                    AccrueWebEvents.accrueWalletGoogleProvisioningResponseKey -> {
+                        Log.i("AccrueWebView", "Google Wallet Provisioning Response Received")
+                        Log.i("AccrueWebView", "Message: $message")
+                        webView.provisioningMain?.startPushProvisioning(message)
+                    }
+                    AccrueWebEvents.accrueWalletGoogleWalletProvisioningStatusRequestedKey -> {
+                        Log.i("AccrueWebView", "Google Wallet Provisioning Status Request Received")
+                        Log.i("AccrueWebView", "Message: $message")
+                        webView.provisioningMain?.checkTokensInActiveWallet(message) { response ->
+                            Log.i("AccrueWebView", "Token status response received: $response")
+                            webView.post {
+                                webView.evaluateJavascript("""
+                                    if (typeof window !== "undefined" && typeof window?.["${AccrueWebEvents.googleWalletProvisioningStatusResponseFunction}"] === "function") {
+                                        window?.["${AccrueWebEvents.googleWalletProvisioningStatusResponseFunction}"]?.($response);
+                                    }
+                                """.trimIndent(), null)
+                            }
+                        }
+                    }
                     else -> Log.w("AccrueWebView", "Unknown message type: $key")
                 }
             } catch (e: JSONException) {
@@ -130,7 +201,7 @@ class AccrueWebView @JvmOverloads constructor(
     }
 
     // for links that open in new window to work
-    private class AccrueWebViewClient : WebViewClient() {
+    private class AccrueWebViewClient(private val webView: AccrueWebView) : WebViewClient() {
         val TAG: String = "AccrueWebViewClient"
 
         fun isAppDeepLink(url: String): Boolean {
@@ -199,6 +270,21 @@ class AccrueWebView @JvmOverloads constructor(
                 context.startActivity(intent)
             }
         }
+
+        override fun onPageFinished(view: WebView?, url: String?) {
+            super.onPageFinished(view, url)
+            
+            if (webView.hasInitialLoadCompleted) {
+                return
+            }
+            // Send Google Wallet eligibility status only after the initial page load
+            webView.hasInitialLoadCompleted = true
+            Log.d(TAG, "Initial page load completed, sending Google Wallet eligibility status")
+            webView.post {
+                webView.sendGoogleWalletEligibilityStatus(isAutomatic = true)
+            }
+             
+        }
     }
 
     class InAppBrowserActivity : AppCompatActivity() {
@@ -257,7 +343,9 @@ class AccrueWebView @JvmOverloads constructor(
 
     fun handleEvent(eventName: String, data: String) {
         val eventMap = mapOf(
-            "AccrueTabPressed" to "__GO_TO_HOME_SCREEN"
+            "AccrueTabPressed" to "__GO_TO_HOME_SCREEN",
+            AccrueWebEvents.googleWalletProvisioningSuccessFunction to AccrueWebEvents.googleWalletProvisioningSuccessFunction,
+            AccrueWebEvents.googleWalletProvisioningErrorFunction to AccrueWebEvents.googleWalletProvisioningErrorFunction
         )
         val mappedEventName = eventMap[eventName] ?: eventName
 
@@ -268,4 +356,58 @@ class AccrueWebView @JvmOverloads constructor(
         """.trimIndent(), null)
     }
 
+    /**
+     * Send Google Wallet eligibility status to the webview
+     * @param isAutomatic Whether this check was triggered automatically or manually
+     */
+    internal fun sendGoogleWalletEligibilityStatus(isAutomatic: Boolean) {
+        val logPrefix = if (isAutomatic) "Automatically" else "Manually" 
+        
+        // Check if Google Wallet is available and device is eligible
+        provisioningMain?.let { provisioning ->
+            provisioning.checkGoogleWalletEligibility { isEligible, details ->
+                val responseJson = JSONObject().apply {
+                    put("isEligible", isEligible)
+                    put("details", details ?: "")
+                    put("timestamp", System.currentTimeMillis())
+                    put("automatic", isAutomatic)
+                }.toString()
+                
+                Log.i("AccrueWebView", "$logPrefix Google Wallet Eligibility Result: $responseJson")
+                // Send the result to the WebView
+                post {
+                    evaluateJavascript("""
+                        if (typeof window !== "undefined" && typeof window?.["${AccrueWebEvents.googleWalletEligibilityResponseFunction}"] === "function") {
+                            window?.["${AccrueWebEvents.googleWalletEligibilityResponseFunction}"]?.($responseJson);
+                        }
+                    """.trimIndent(), null)
+                }
+            }
+        } ?: run {
+            // If provisioning is not available, return not eligible
+            val responseJson = JSONObject().apply {
+                put("isEligible", false)
+                put("details", "Google Wallet provisioning not available")
+                put("timestamp", System.currentTimeMillis())
+                put("automatic", isAutomatic)
+            }.toString()
+            
+            Log.i("AccrueWebView", "$logPrefix Google Wallet Eligibility Result: $responseJson")
+            post {
+                evaluateJavascript("""
+                    if (typeof window !== "undefined" && typeof window?.["${AccrueWebEvents.googleWalletEligibilityResponseFunction}"] === "function") {
+                        window?.["${AccrueWebEvents.googleWalletEligibilityResponseFunction}"]?.($responseJson);
+                    }
+                """.trimIndent(), null)
+            }
+        }
+    }
+
+    /**
+     * Update the ProvisioningMain reference
+     * This method should be called after ProvisioningMain is initialized
+     */
+    internal fun setProvisioningMain(provisioning: ProvisioningMain) {
+        this.provisioningMain = provisioning 
+    }
 }
