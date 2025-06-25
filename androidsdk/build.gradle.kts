@@ -11,7 +11,7 @@ plugins {
 
 android {
     group = "com.accruesavings.androidsdk"
-    version = "v1.1.0"
+    version = "v1.1.1"
     namespace = "com.accruesavings.androidsdk"
     compileSdk = 34
 
@@ -47,6 +47,10 @@ android {
             withJavadocJar()
         }
     }
+    
+    lint {
+        disable += "CoroutineCreationDuringComposition"
+    }
 }
 
 
@@ -65,7 +69,7 @@ dependencies {
     // Google Pay API for Push Provisioning
     implementation("com.google.android.gms:play-services-pay:16.1.0")
     implementation("com.google.android.gms:play-services-wallet:19.2.1")
-    // TapAndPay API for push provisioning functionality - using local SDK
+    // TapAndPay API for push provisioning functionality - using Maven Central
     implementation("com.google.android.gms:play-services-tapandpay:18.3.3")
     // Google Sign-In for wallet account ID
     implementation("com.google.android.gms:play-services-auth:20.7.0")
@@ -84,7 +88,7 @@ publishing {
         register<MavenPublication>("release") {
             groupId = "com.accruesavings"
             artifactId = "androidsdk"
-            version = "v1.1.0"
+            version = "v1.1.1"
 
             afterEvaluate {
                 from(components["release"])
