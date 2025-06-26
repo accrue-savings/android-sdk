@@ -70,7 +70,7 @@ class PushProvisioningService(
         val tspString = pushData.tokenServiceProvider ?: ""
         val tspConstant = mapTokenServiceProviderToConstant(tspString)
         
-        return PushTokenizeRequest.Builder()
+        val request = PushTokenizeRequest.Builder()
             .setOpaquePaymentCard(decodeOpaquePaymentCard(pushData.opaquePaymentCard ?: ""))
             .setNetwork(networkConstant)
             .setDisplayName(pushData.displayName ?: "Card")
@@ -82,6 +82,17 @@ class PushProvisioningService(
                 }
             }
             .build()
+        
+        // Log the complete request details using original data
+        Log.d(TAG, "Generated PushTokenizeRequest:")
+        Log.d(TAG, "  - OpaquePaymentCard length: ${decodeOpaquePaymentCard(pushData.opaquePaymentCard ?: "").size} bytes")
+        Log.d(TAG, "  - Network: $networkString -> ${getNetworkConstantName(networkConstant)} ($networkConstant)")
+        Log.d(TAG, "  - DisplayName: ${pushData.displayName ?: "Card"}")
+        Log.d(TAG, "  - LastDigits: ${pushData.lastDigits ?: ""}")
+        Log.d(TAG, "  - TokenServiceProvider: $tspString -> ${getTspConstantName(tspConstant)} ($tspConstant)")
+        Log.d(TAG, "  - UserAddress: ${pushData.userAddress}")
+
+        return request
     }
     
     /**
@@ -208,6 +219,30 @@ class PushProvisioningService(
             )
             errorHandler.handleError(error)
             callback(Result.failure(Exception(error.message)))
+        }
+    }
+    
+    /**
+     * Get readable name for network constant
+     */
+    private fun getNetworkConstantName(constant: Int): String {
+        return when (constant) {
+            TapAndPay.CARD_NETWORK_VISA -> "CARD_NETWORK_VISA"
+            TapAndPay.CARD_NETWORK_MASTERCARD -> "CARD_NETWORK_MASTERCARD"
+            TapAndPay.CARD_NETWORK_AMEX -> "CARD_NETWORK_AMEX"
+            TapAndPay.CARD_NETWORK_DISCOVER -> "CARD_NETWORK_DISCOVER"
+            else -> "UNKNOWN_NETWORK"
+        }
+    }
+    
+    /**
+     * Get readable name for token service provider constant
+     */
+    private fun getTspConstantName(constant: Int): String {
+        return when (constant) {
+            TapAndPay.TOKEN_PROVIDER_VISA -> "TOKEN_PROVIDER_VISA"
+            TapAndPay.TOKEN_PROVIDER_MASTERCARD -> "TOKEN_PROVIDER_MASTERCARD"
+            else -> "UNKNOWN_TSP"
         }
     }
 } 
