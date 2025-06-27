@@ -97,7 +97,7 @@ class PushProvisioningService(
     
     /**
      * Decode the Opaque Payment Card data
-     * Following Google's specification: treat OPC as direct string bytes
+     * Following Marqeta's specification: convert Base64 encoded string to byte array
      */
     private fun decodeOpaquePaymentCard(opcData: String): ByteArray {
         return if (opcData.isEmpty()) {
@@ -105,11 +105,10 @@ class PushProvisioningService(
             ByteArray(0)
         } else {
             try {
-                // Follow Google's approach: convert string directly to bytes
-                // This matches Google's example: opcHelper.getOPC().getBytes()
-                opcData.toByteArray(Charsets.UTF_8)
+                // Follow Marqeta's specification: decode Base64 string to byte array
+                Base64.decode(opcData, Base64.DEFAULT)
             } catch (e: Exception) {
-                Log.e(TAG, "Failed to convert OPC data to bytes", e)
+                Log.e(TAG, "Failed to decode Base64 OPC data to bytes", e)
                 ByteArray(0)
             }
         }
