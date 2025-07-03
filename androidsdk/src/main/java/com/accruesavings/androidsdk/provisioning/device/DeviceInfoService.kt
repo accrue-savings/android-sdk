@@ -5,12 +5,14 @@ import android.provider.Settings
 import android.util.Log
 import com.accruesavings.androidsdk.provisioning.error.ErrorCodes
 import com.accruesavings.androidsdk.provisioning.error.ProvisioningError
+import com.accruesavings.androidsdk.provisioning.core.TapAndPayClientManager
 
 /**
  * Service responsible for gathering device information needed for provisioning
  */
 class DeviceInfoService(
-    private val context: Context
+    private val context: Context,
+    private val tapAndPayClientManager: TapAndPayClientManager
 ) {
     companion object {
         private const val TAG = "DeviceInfoService"
@@ -30,20 +32,7 @@ class DeviceInfoService(
         walletAccountId: String?,
         callback: (DeviceInfo?) -> Unit
     ) {
-        // Check if we have all required info
-        val hwId = getStableHardwareId()
-        if (hwId != null && walletAccountId != null) {
-            val deviceInfo = createDeviceInfo(hwId, walletAccountId)
-            callback(deviceInfo)
-            return
-        }
-        
-        // Queue the request if missing required data
-        if (hwId == null) {
-            Log.w(TAG, "Stable hardware ID not available")
-            callback(null)
-            return
-        }
+        Log.d(TAG, "Getting device info with wallet account ID: $walletAccountId")
         
         if (walletAccountId == null) {
             Log.w(TAG, "Wallet account ID not available")
@@ -51,29 +40,52 @@ class DeviceInfoService(
             return
         }
         
-        // This shouldn't happen, but handle gracefully
-        callback(null)
+        // Get stable hardware ID asynchronously
+        getStableHardwareId { hardwareId ->
+            if (hardwareId != null) {
+                val deviceInfo = createDeviceInfo(hardwareId, walletAccountId)
+                Log.d(TAG, "Created device info - Hardware ID: $hardwareId, Wallet ID: $walletAccountId")
+                callback(deviceInfo)
+            } else {
+                Log.w(TAG, "Stable hardware ID not available")
+                callback(null)
+            }
+        }
     }
     
     /**
-     * Get the stable hardware ID for this device
+     * Get the stable hardware ID for this device using Google's TapAndPay API
      */
-    fun getStableHardwareId(): String? {
+    fun getStableHardwareId(callback: (String?) -> Unit) {
         if (cachedStableHardwareId != null) {
-            return cachedStableHardwareId
+            Log.d(TAG, "Using cached stable hardware ID: $cachedStableHardwareId")
+            callback(cachedStableHardwareId)
+            return
         }
         
-        try {
-            cachedStableHardwareId = Settings.Secure.getString(
-                context.contentResolver,
-                Settings.Secure.ANDROID_ID
-            )
-            Log.d(TAG, "Retrieved stable hardware ID")
-            return cachedStableHardwareId
-        } catch (e: Exception) {
-            Log.e(TAG, "Failed to get stable hardware ID", e)
-            return null
-        }
+        tapAndPayClientManager.getStableHardwareId(
+            onSuccess = { hardwareId ->
+                Log.d(TAG, "Retrieved stable hardware ID from TapAndPay: $hardwareId")
+                cachedStableHardwareId = hardwareId
+                callback(hardwareId)
+            },
+            onFailure = { exception ->
+                Log.e(TAG, "Failed to get stable hardware ID from TapAndPay", exception)
+                // Fallback to ANDROID_ID if TapAndPay fails
+                try {
+                    val fallbackId = Settings.Secure.getString(
+                        context.contentResolver,
+                        Settings.Secure.ANDROID_ID
+                    )
+                    Log.w(TAG, "Using fallback ANDROID_ID: $fallbackId")
+                    cachedStableHardwareId = fallbackId
+                    callback(fallbackId)
+                } catch (e: Exception) {
+                    Log.e(TAG, "Failed to get fallback ANDROID_ID", e)
+                    callback(null)
+                }
+            }
+        )
     }
     
     /**
@@ -92,12 +104,15 @@ class DeviceInfoService(
             "unknown"
         }
         
-        return DeviceInfo(
+        val deviceInfo = DeviceInfo(
             stableHardwareId = hardwareId,
             deviceType = deviceType,
             osVersion = osVersion,
             walletAccountId = walletAccountId
         )
+        
+        Log.d(TAG, "Created DeviceInfo: ${deviceInfo.toJson()}")
+        return deviceInfo
     }
     
     /**

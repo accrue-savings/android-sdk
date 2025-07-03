@@ -157,7 +157,9 @@ class AccrueWebView @JvmOverloads constructor(
                                         }
                                     }.toString()
                                     
-                                    Log.i("AccrueWebView", "Device Info: $deviceInfoJson")
+                                    Log.i("AccrueWebView", "Device Info being sent to web: $deviceInfoJson")
+                                    Log.i("AccrueWebView", "Device ID: ${it.deviceId}")
+                                    Log.i("AccrueWebView", "Wallet Account ID: ${it.walletAccountId}")
                                     // We need to get this to the main thread to evaluate JavaScript
                                     webView.post {
                                         webView.evaluateJavascript("""
