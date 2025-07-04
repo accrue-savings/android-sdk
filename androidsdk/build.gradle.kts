@@ -11,7 +11,7 @@ plugins {
 
 android {
     group = "com.accruesavings.androidsdk"
-    version = "v1.1.3"
+    version = "v1.1.4"
     namespace = "com.accruesavings.androidsdk"
     compileSdk = 34
 
@@ -88,7 +88,7 @@ publishing {
         register<MavenPublication>("release") {
             groupId = "com.accruesavings"
             artifactId = "androidsdk"
-            version = "v1.1.3"
+            version = "v1.1.4"
 
             afterEvaluate {
                 from(components["release"])

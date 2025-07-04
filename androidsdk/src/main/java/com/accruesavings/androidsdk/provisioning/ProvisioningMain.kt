@@ -126,7 +126,7 @@ class ProvisioningMain(private val context: Context) {
         environmentService = EnvironmentService(context, errorHandler)
         tokenManagementService = TokenManagementService(errorHandler)
         pushProvisioningService = PushProvisioningService(tapAndPayClientManager, errorHandler)
-        deviceInfoService = DeviceInfoService(context)
+        deviceInfoService = DeviceInfoService(context, tapAndPayClientManager)
         diagnostics = GooglePayDiagnostics(context)
         
         // Initialize TapAndPay client
