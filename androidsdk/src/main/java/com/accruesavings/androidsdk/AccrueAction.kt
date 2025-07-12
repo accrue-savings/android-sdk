@@ -4,5 +4,4 @@ enum class AccrueAction {
     SignInButtonClicked,
     RegisterButtonClicked,
     GoogleWalletProvisioningRequested,
-    GoogleWalletEligibilityCheck
 }
