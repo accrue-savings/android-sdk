@@ -182,7 +182,7 @@ class AccrueWebView @JvmOverloads constructor(
                     AccrueWebEvents.accrueWalletGoogleWalletProvisioningWalletInformationRequestedKey -> {
                         Log.i("AccrueWebView", "Google Wallet Provisioning Wallet Information Request Received")
                         Log.i("AccrueWebView", "Message: $message")
-                        webView.provisioningMain?.getWalletInfo(message) { response ->
+                        webView.provisioningMain?.getWalletInfo { response ->
                             Log.i("AccrueWebView", "Token status response received: $response")
                             webView.post {
                                 webView.evaluateJavascript("""

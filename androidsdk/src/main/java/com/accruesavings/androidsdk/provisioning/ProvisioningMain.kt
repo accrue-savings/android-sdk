@@ -13,7 +13,6 @@ import com.google.android.gms.tapandpay.issuer.TokenInfo
 import com.google.android.gms.tapandpay.issuer.TokenStatus
 import org.json.JSONObject
 import org.json.JSONArray
-import androidx.activity.result.IntentSenderRequest
 import kotlinx.coroutines.*
 import kotlin.coroutines.resume
 import kotlin.coroutines.suspendCoroutine
@@ -28,7 +27,6 @@ import com.accruesavings.androidsdk.provisioning.core.NfcStatus
 import com.accruesavings.androidsdk.provisioning.device.DeviceInfoService
 import com.accruesavings.androidsdk.provisioning.device.DeviceInfo as NewDeviceInfo
 import com.accruesavings.androidsdk.provisioning.error.ErrorHandler
-import com.accruesavings.androidsdk.provisioning.error.ProvisioningError
 import com.accruesavings.androidsdk.provisioning.error.ErrorCodes
 import com.accruesavings.androidsdk.provisioning.config.ProvisioningConstants
 import com.accruesavings.androidsdk.provisioning.core.GooglePayDiagnostics
@@ -808,7 +806,7 @@ class ProvisioningMain(private val context: Context) {
      * Get the active wallet ID
      * This method is called by WebView to get the current active wallet ID
      */
-    fun getWalletInfo(jsonData: String, callback: (String) -> Unit) {
+    fun getWalletInfo(callback: (String) -> Unit) {
         Log.d(TAG, "Getting active wallet ID")
         
         tapAndPayClientManager.getActiveWalletId(
