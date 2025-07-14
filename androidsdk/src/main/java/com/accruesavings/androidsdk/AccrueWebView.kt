@@ -129,10 +129,9 @@ class AccrueWebView @JvmOverloads constructor(
                 when (key) {
                     AccrueWebEvents.accrueWalletSignInButtonClickedKey -> onAction[AccrueAction.SignInButtonClicked]?.invoke()
                     AccrueWebEvents.accrueWalletRegisterButtonClickedKey -> onAction[AccrueAction.RegisterButtonClicked]?.invoke()
-                    AccrueWebEvents.accrueWalletGoogleWalletEligibilityCheckKey -> {
-                        Log.i("AccrueWebView", "Google Wallet Eligibility Check Requested")
-                        onAction[AccrueAction.GoogleWalletEligibilityCheck]?.invoke()
-                        webView.sendGoogleWalletEligibilityStatus(isAutomatic = false)
+                    AccrueWebEvents.accrueWalletGoogleWalletProvisioningIsSupportedRequestedKey -> {
+                        Log.i("AccrueWebView", "Google Wallet Provisioning Is Supported Requested")
+                        webView.sendGoogleWalletProvisioningIsSupportedStatus(isAutomatic = false)
                     }
                     AccrueWebEvents.accrueWalletGoogleProvisioningRequestedKey -> {
                         Log.i("AccrueWebView", "Google Wallet Provisioning Requested")
@@ -180,15 +179,15 @@ class AccrueWebView @JvmOverloads constructor(
                         Log.i("AccrueWebView", "Message: $message")
                         webView.provisioningMain?.startPushProvisioning(message)
                     }
-                    AccrueWebEvents.accrueWalletGoogleWalletProvisioningStatusRequestedKey -> {
-                        Log.i("AccrueWebView", "Google Wallet Provisioning Status Request Received")
+                    AccrueWebEvents.accrueWalletGoogleWalletProvisioningWalletInformationRequestedKey -> {
+                        Log.i("AccrueWebView", "Google Wallet Provisioning Wallet Information Request Received")
                         Log.i("AccrueWebView", "Message: $message")
-                        webView.provisioningMain?.checkTokensInActiveWallet(message) { response ->
+                        webView.provisioningMain?.getWalletInfo { response ->
                             Log.i("AccrueWebView", "Token status response received: $response")
                             webView.post {
                                 webView.evaluateJavascript("""
-                                    if (typeof window !== "undefined" && typeof window?.["${AccrueWebEvents.googleWalletProvisioningStatusResponseFunction}"] === "function") {
-                                        window?.["${AccrueWebEvents.googleWalletProvisioningStatusResponseFunction}"]?.($response);
+                                    if (typeof window !== "undefined" && typeof window?.["${AccrueWebEvents.googleWalletProvisioningWalletInformationResponseFunction}"] === "function") {
+                                        window?.["${AccrueWebEvents.googleWalletProvisioningWalletInformationResponseFunction}"]?.($response);
                                     }
                                 """.trimIndent(), null)
                             }
@@ -281,11 +280,7 @@ class AccrueWebView @JvmOverloads constructor(
             }
             // Send Google Wallet eligibility status only after the initial page load
             webView.hasInitialLoadCompleted = true
-            Log.d(TAG, "Initial page load completed, sending Google Wallet eligibility status")
-            webView.post {
-                webView.sendGoogleWalletEligibilityStatus(isAutomatic = true)
-            }
-             
+            Log.d(TAG, "Initial page load completed")
         }
     }
 
@@ -346,8 +341,7 @@ class AccrueWebView @JvmOverloads constructor(
     fun handleEvent(eventName: String, data: String) {
         val eventMap = mapOf(
             "AccrueTabPressed" to "__GO_TO_HOME_SCREEN",
-            AccrueWebEvents.googleWalletProvisioningSuccessFunction to AccrueWebEvents.googleWalletProvisioningSuccessFunction,
-            AccrueWebEvents.googleWalletProvisioningErrorFunction to AccrueWebEvents.googleWalletProvisioningErrorFunction
+            "googleWalletProvisioningResult" to AccrueWebEvents.googleWalletProvisioningResultFunction
         )
         val mappedEventName = eventMap[eventName] ?: eventName
 
@@ -359,17 +353,17 @@ class AccrueWebView @JvmOverloads constructor(
     }
 
     /**
-     * Send Google Wallet eligibility status to the webview
+     * Send Google Wallet provisioning is supported status to the webview
      * @param isAutomatic Whether this check was triggered automatically or manually
      */
-    internal fun sendGoogleWalletEligibilityStatus(isAutomatic: Boolean) {
+    internal fun sendGoogleWalletProvisioningIsSupportedStatus(isAutomatic: Boolean) {
         val logPrefix = if (isAutomatic) "Automatically" else "Manually" 
         
         // Check if Google Wallet is available and device is eligible
         provisioningMain?.let { provisioning ->
             provisioning.checkGoogleWalletEligibility { isEligible, details ->
                 val responseJson = JSONObject().apply {
-                    put("isEligible", isEligible)
+                    put("isSupported", isEligible)
                     put("details", details ?: "")
                     put("timestamp", System.currentTimeMillis())
                     put("automatic", isAutomatic)
@@ -379,8 +373,8 @@ class AccrueWebView @JvmOverloads constructor(
                 // Send the result to the WebView
                 post {
                     evaluateJavascript("""
-                        if (typeof window !== "undefined" && typeof window?.["${AccrueWebEvents.googleWalletEligibilityResponseFunction}"] === "function") {
-                            window?.["${AccrueWebEvents.googleWalletEligibilityResponseFunction}"]?.($responseJson);
+                        if (typeof window !== "undefined" && typeof window?.["${AccrueWebEvents.googleWalletProvisioningIsSupportedResponseFunction}"] === "function") {
+                            window?.["${AccrueWebEvents.googleWalletProvisioningIsSupportedResponseFunction}"]?.($responseJson);
                         }
                     """.trimIndent(), null)
                 }
@@ -397,8 +391,8 @@ class AccrueWebView @JvmOverloads constructor(
             Log.i("AccrueWebView", "$logPrefix Google Wallet Eligibility Result: $responseJson")
             post {
                 evaluateJavascript("""
-                    if (typeof window !== "undefined" && typeof window?.["${AccrueWebEvents.googleWalletEligibilityResponseFunction}"] === "function") {
-                        window?.["${AccrueWebEvents.googleWalletEligibilityResponseFunction}"]?.($responseJson);
+                    if (typeof window !== "undefined" && typeof window?.["${AccrueWebEvents.googleWalletProvisioningIsSupportedResponseFunction}"] === "function") {
+                        window?.["${AccrueWebEvents.googleWalletProvisioningIsSupportedResponseFunction}"]?.($responseJson);
                     }
                 """.trimIndent(), null)
             }

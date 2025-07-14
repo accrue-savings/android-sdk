@@ -20,15 +20,14 @@ object AccrueWebEvents {
     // Google Wallet Provisioning Events
     const val accrueWalletGoogleProvisioningRequestedKey: String = "AccrueWallet::GoogleWalletProvisioningRequested"
     const val accrueWalletGoogleProvisioningResponseKey: String = "AccrueWallet::GoogleWalletProvisioningResponse"
-    const val accrueWalletGoogleWalletEligibilityCheckKey: String = "AccrueWallet::GoogleWalletEligibilityCheck"
-    const val accrueWalletGoogleWalletProvisioningStatusRequestedKey: String = "AccrueWallet::GoogleWalletProvisioningStatusRequested"
+    const val accrueWalletGoogleWalletProvisioningIsSupportedRequestedKey: String = "AccrueWallet::GoogleWalletProvisioningIsSupportedRequested"
+    const val accrueWalletGoogleWalletProvisioningWalletInformationRequestedKey: String = "AccrueWallet::GoogleWalletProvisioningWalletInformationRequested"
     
     // Google Wallet Provisioning WebView Functions
     const val generateGoogleWalletProvisioningTokenFunction: String = "__GENERATE_GOOGLE_WALLET_PUSH_PROVISIONING_TOKEN"
-    const val googleWalletProvisioningSuccessFunction: String = "__GOOGLE_WALLET_PROVISIONING_SUCCESS"
-    const val googleWalletProvisioningErrorFunction: String = "__GOOGLE_WALLET_PROVISIONING_ERROR"
-    const val googleWalletEligibilityResponseFunction: String = "__GOOGLE_WALLET_ELIGIBILITY_RESPONSE"
-    const val googleWalletProvisioningStatusResponseFunction: String = "__GOOGLE_WALLET_PROVISIONING_STATUS_RESPONSE"
+    const val googleWalletProvisioningResultFunction: String = "__GOOGLE_WALLET_PROVISIONING_RESULT"
+    const val googleWalletProvisioningIsSupportedResponseFunction: String = "__GOOGLE_WALLET_PROVISIONING_IS_SUPPORTED_RESPONSE"
+    const val googleWalletProvisioningWalletInformationResponseFunction: String = "__GOOGLE_WALLET_PROVISIONING_WALLET_INFORMATION_RESPONSE"
 }
 
 object SampleData {
