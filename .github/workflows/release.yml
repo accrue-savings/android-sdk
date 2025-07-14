@@ -62,10 +62,10 @@ jobs:
           echo "Updating version to ${NEXT_VERSION}"
 
           # Update androidsdk/build.gradle.kts - android block version
-          sed -i "s/version = \"v[0-9]*\.[0-9]*\.[0-9]*\"/version = \"${NEXT_VERSION}\"/" androidsdk/build.gradle.kts
+          sed -i '/^android {/,/^}/s/version = "v[0-9]*\.[0-9]*\.[0-9]*"/version = "'"${NEXT_VERSION}"'"/' androidsdk/build.gradle.kts
 
           # Update androidsdk/build.gradle.kts - MavenPublication version
-          sed -i "s/version = \"v[0-9]*\.[0-9]*\.[0-9]*\"/version = \"${NEXT_VERSION}\"/" androidsdk/build.gradle.kts
+          sed -i '/register<MavenPublication>/,/}/s/version = "v[0-9]*\.[0-9]*\.[0-9]*"/version = "'"${NEXT_VERSION}"'"/' androidsdk/build.gradle.kts
 
           # Update AccrueContextData.kt - sdkVersion
           sed -i "s/sdkVersion: String? = \"v[0-9]*\.[0-9]*\.[0-9]*\"/sdkVersion: String? = \"${NEXT_VERSION}\"/" androidsdk/src/main/java/com/accruesavings/androidsdk/AccrueContextData.kt
