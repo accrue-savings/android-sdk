@@ -107,35 +107,7 @@ class EnvironmentService(
             callback(false)
         }
     }
-    
-    /**
-     * Launch intent to set Google Pay as default payment app
-     */
-    fun setAsDefaultWallet(activity: FragmentActivity) {
-        try {
-            val intent = Intent(CardEmulation.ACTION_CHANGE_DEFAULT).apply {
-                putExtra(CardEmulation.EXTRA_CATEGORY, CardEmulation.CATEGORY_PAYMENT)
-                putExtra(
-                    CardEmulation.EXTRA_SERVICE_COMPONENT,
-                    ComponentName(
-                        GoogleApiAvailability.GOOGLE_PLAY_SERVICES_PACKAGE,
-                        GOOGLE_PAY_TP_HCE_SERVICE
-                    )
-                )
-            }
-            
-            activity.startActivityForResult(intent, SET_DEFAULT_PAYMENTS_REQUEST_CODE)
-            Log.d(TAG, "Launched intent to set Google Pay as default")
-            
-        } catch (e: Exception) {
-            Log.e(TAG, "Failed to launch default wallet intent", e)
-            val error = ProvisioningError(
-                code = ErrorCodes.ERROR_GOOGLE_PAY_NOT_DEFAULT,
-                message = "Failed to set Google Pay as default: ${e.message}"
-            )
-            errorHandler.handleError(error)
-        }
-    }
+
     
     /**
      * Create a Google Pay wallet
