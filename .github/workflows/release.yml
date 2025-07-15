@@ -89,8 +89,12 @@ jobs:
 
       - name: Create github.properties
         run: |
-          # Create github.properties if it doesn't exist or overwrite if it does
-          echo "gpr.usr=${{ github.actor }}" > github.properties
+          # Create github-read.properties for dependency resolution
+          echo "gpr.usr=Github Workflow" > github-read.properties
+          echo "gpr.key=${{ secrets.GITHUB_TOKEN }}" >> github-read.properties
+
+          # Create github.properties for publishing
+          echo "gpr.usr=Github Workflow" > github.properties
           echo "gpr.key=${{ secrets.GITHUB_TOKEN }}" >> github.properties
 
       - name: Publish Package

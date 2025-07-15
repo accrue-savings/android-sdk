@@ -495,19 +495,6 @@ class ProvisioningMain(private val context: Context) {
     }
     
     /**
-     * Set Google Pay as the default payment app
-     */
-    fun setGooglePayAsDefault() {
-        Log.d(TAG, "Setting Google Pay as default wallet")
-        
-        activity?.let { act ->
-            environmentService.setAsDefaultWallet(act)
-        } ?: run {
-            notifyError(ErrorCodes.ERROR_ACTIVITY_NOT_AVAILABLE, "Activity not available for setting default wallet")
-        }
-    }
-    
-    /**
      * Create a Google Pay wallet
      */
     fun createGooglePayWallet() {
