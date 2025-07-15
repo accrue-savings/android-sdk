@@ -228,43 +228,6 @@ class TokenManagementService(
         }
     }
     
-    /**
-     * Request deletion of a token
-     * Note: This typically triggers user confirmation in Google Pay
-     */
-    fun requestDeleteToken(
-        tokenServiceProvider: Int,
-        tokenReferenceId: String,
-        callback: (Boolean) -> Unit
-    ) {
-        tapAndPayClient?.let { client ->
-            // Note: The actual token deletion is typically handled through the viewToken UI
-            // or through backend calls. This is a placeholder for additional deletion logic
-            Log.d(TAG, "Token deletion requested for: $tokenReferenceId")
-            
-            // In practice, you might need to:
-            // 1. Show confirmation dialog
-            // 2. Call backend to invalidate token
-            // 3. Use viewToken to let user manage in Google Pay UI
-            
-            viewToken(object : FragmentActivity() {}, tokenReferenceId) { success ->
-                if (success) {
-                    Log.d(TAG, "Directed user to token management for deletion")
-                    callback(true)
-                } else {
-                    val error = ProvisioningError(
-                        code = ErrorCodes.ERROR_TOKEN_DELETE_FAILED,
-                        message = "Failed to initiate token deletion for $tokenReferenceId"
-                    )
-                    errorHandler.handleError(error)
-                    callback(false)
-                }
-            }
-        } ?: run {
-            Log.e(TAG, "TapAndPay client not initialized")
-            callback(false)
-        }
-    }
     
     /**
      * Generate an identifier for token checking

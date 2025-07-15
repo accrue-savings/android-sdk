@@ -96,7 +96,6 @@ publishing {
         }
     }
     repositories {
-        google()
         maven {
             name = "GitHubPackages"
             url = uri("https://maven.pkg.github.com/accrue-savings/android-sdk")

@@ -479,20 +479,6 @@ class ProvisioningMain(private val context: Context) {
         }
     }
     
-    /**
-     * Request deletion of a token
-     */
-    fun requestDeleteToken(tokenServiceProvider: Int, tokenReferenceId: String) {
-        Log.d(TAG, "Token deletion requested for: $tokenReferenceId")
-        
-        tokenManagementService.requestDeleteToken(tokenServiceProvider, tokenReferenceId) { success ->
-            if (success) {
-                notifySuccess("{\"message\": \"Token deletion initiated\", \"tokenId\": \"$tokenReferenceId\"}")
-            } else {
-                notifyError(ErrorCodes.ERROR_TOKEN_DELETE_FAILED, "Failed to initiate token deletion", "Token ID: $tokenReferenceId")
-            }
-        }
-    }
     
     /**
      * Create a Google Pay wallet
