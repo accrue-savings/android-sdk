@@ -82,7 +82,7 @@ class AccrueWebView @JvmOverloads constructor(
 
         if (WebViewFeature.isFeatureSupported(
                 WebViewFeature.PAYMENT_REQUEST)) {
-            WebSettingsCompat.setPaymentRequestEnabled(settings, true);
+            WebSettingsCompat.setPaymentRequestEnabled(settings, true)
         }
         // local storage does not work without it
         settings.domStorageEnabled = true
