@@ -11,7 +11,7 @@ plugins {
 
 android {
     group = "com.accruesavings.androidsdk"
-    version = "v1.2.4"
+    version = "v1.3.0"
     namespace = "com.accruesavings.androidsdk"
     compileSdk = 34
 
@@ -47,7 +47,7 @@ android {
             withJavadocJar()
         }
     }
-    
+
     lint {
         disable += "CoroutineCreationDuringComposition"
     }
@@ -77,6 +77,7 @@ dependencies {
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
     implementation("androidx.browser:browser:1.5.0")
+    implementation("androidx.webkit:webkit:1.14.0")
 }
 
 
@@ -88,7 +89,7 @@ publishing {
         register<MavenPublication>("release") {
             groupId = "com.accruesavings"
             artifactId = "androidsdk"
-            version = "v1.2.4"
+            version = "v1.3.0"
 
             afterEvaluate {
                 from(components["release"])

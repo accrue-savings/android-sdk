@@ -1,5 +1,6 @@
 package com.accruesavings.androidsdk
 
+import android.annotation.SuppressLint
 import android.content.ActivityNotFoundException
 import android.content.Context
 import android.content.Intent
@@ -19,6 +20,8 @@ import org.json.JSONObject
 import androidx.browser.customtabs.CustomTabsIntent
 import androidx.core.net.toUri
 import androidx.fragment.app.FragmentActivity
+import androidx.webkit.WebSettingsCompat
+import androidx.webkit.WebViewFeature
 
 fun contextToJson(contextData: AccrueContextData?): String {
     if(contextData === null) {
@@ -72,9 +75,15 @@ class AccrueWebView @JvmOverloads constructor(
         setupWebView()
     }
 
+    @SuppressLint("SetJavaScriptEnabled")
     private fun setupWebView() {
         overScrollMode = OVER_SCROLL_NEVER
         settings.javaScriptEnabled = true
+
+        if (WebViewFeature.isFeatureSupported(
+                WebViewFeature.PAYMENT_REQUEST)) {
+            WebSettingsCompat.setPaymentRequestEnabled(settings, true)
+        }
         // local storage does not work without it
         settings.domStorageEnabled = true
 //        settings.setSupportMultipleWindows(true)
