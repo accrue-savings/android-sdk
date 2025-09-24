@@ -257,12 +257,113 @@ class AccrueWebView @JvmOverloads constructor(
         }
         fun openDeepLink(context: Context, url: String) {
             try {
-                val intent = Intent(Intent.ACTION_VIEW, url.toUri()).apply {
-                    flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
+                val intent = if (url.startsWith("intent://")) {
+                    // Parse intent:// URLs
+                    parseIntentUrl(url)
+                } else {
+                    // Handle regular deep links
+                    Intent(Intent.ACTION_VIEW, url.toUri()).apply {
+                        flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
+                    }
                 }
                 context.startActivity(intent)
             } catch (e: ActivityNotFoundException) {
-                Log.e("Deeplink", "No activity found to handle deep link", e)
+                Log.e("Deeplink", "No activity found to handle deep link: $url", e)
+                // Try to handle the fallback URL if it's an intent:// URL
+                if (url.startsWith("intent://")) {
+                    handleIntentFallback(context, url)
+                }
+            } catch (e: Exception) {
+                Log.e("Deeplink", "Error handling deep link: ${e.message}", e)
+            }
+        }
+        
+        private fun parseIntentUrl(url: String): Intent {
+            try {
+                // Parse intent:// URLs using Intent.parseUri
+                val intent = Intent.parseUri(url, Intent.URI_INTENT_SCHEME)
+                
+                // Add flags to ensure proper handling
+                intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
+                
+                return intent
+            } catch (e: Exception) {
+                Log.e("Deeplink", "Error parsing intent URL: ${e.message}", e)
+                // Fallback to regular intent handling
+                return Intent(Intent.ACTION_VIEW, url.toUri()).apply {
+                    flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
+                }
+            }
+        }
+        
+        private fun handleIntentFallback(context: Context, url: String) {
+            try {
+                // Try to extract fallback URL from intent:// URL
+                val fallbackUrl = extractFallbackUrl(url)
+                if (fallbackUrl != null) {
+                    Log.i("Deeplink", "Using fallback URL: $fallbackUrl")
+                    openInAppBrowser(context, fallbackUrl)
+                } else {
+                    Log.w("Deeplink", "No fallback URL found for intent: $url")
+                    // Try to open Google Play Store for the app
+                    openGooglePlayStore(context, url)
+                }
+            } catch (e: Exception) {
+                Log.e("Deeplink", "Error handling intent fallback: ${e.message}", e)
+            }
+        }
+        
+        private fun extractFallbackUrl(url: String): String? {
+            return try {
+                // Look for S.browser_fallback_url parameter in the intent URL
+                val uri = Uri.parse(url)
+                uri.getQueryParameter("S.browser_fallback_url")
+            } catch (e: Exception) {
+                Log.e("Deeplink", "Error extracting fallback URL: ${e.message}", e)
+                null
+            }
+        }
+        
+        private fun openGooglePlayStore(context: Context, url: String) {
+            try {
+                // Extract package name from intent URL
+                val packageName = extractPackageName(url)
+                if (packageName != null) {
+                    val playStoreIntent = Intent(Intent.ACTION_VIEW).apply {
+                        data = Uri.parse("market://details?id=$packageName")
+                        flags = Intent.FLAG_ACTIVITY_NEW_TASK
+                    }
+                    context.startActivity(playStoreIntent)
+                } else {
+                    Log.w("Deeplink", "Could not extract package name from intent URL")
+                }
+            } catch (e: ActivityNotFoundException) {
+                // Fallback to web browser
+                try {
+                    val packageName = extractPackageName(url)
+                    if (packageName != null) {
+                        val webIntent = Intent(Intent.ACTION_VIEW).apply {
+                            data = Uri.parse("https://play.google.com/store/apps/details?id=$packageName")
+                            flags = Intent.FLAG_ACTIVITY_NEW_TASK
+                        }
+                        context.startActivity(webIntent)
+                    }
+                } catch (e2: Exception) {
+                    Log.e("Deeplink", "Error opening Google Play Store: ${e2.message}", e2)
+                }
+            } catch (e: Exception) {
+                Log.e("Deeplink", "Error opening Google Play Store: ${e.message}", e)
+            }
+        }
+        
+        private fun extractPackageName(url: String): String? {
+            return try {
+                // Extract package name from intent:// URL
+                val intent = Intent.parseUri(url, Intent.URI_INTENT_SCHEME)
+                intent.`package`
+            } catch (e: Exception) {
+                Log.e("Deeplink", "Error extracting package name: ${e.message}", e)
+                null
             }
         }
         private fun openInAppBrowser(context: Context, url: String) {
