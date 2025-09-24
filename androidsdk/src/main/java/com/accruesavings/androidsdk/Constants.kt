@@ -34,6 +34,6 @@ object SampleData {
 //    const val merchantId = "e510593e-b975-4f94-baa6-2ae42a8fa6f5"
     const val merchantId = "d0069102-e4a1-410b-ad82-ebe278d7785d" //snipes in sandbox
     const val redirectionToken = ""
-    const val phoneNumber = "2035559382"
-    const val referenceId = "othecos-b123"
+    const val phoneNumber = "+12175554001"
+    const val referenceId = "abk8QGLrEhH7oGfRnZ2NbX5sx2"
 }
