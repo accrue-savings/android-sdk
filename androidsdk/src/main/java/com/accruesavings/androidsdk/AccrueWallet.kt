@@ -11,8 +11,7 @@ import androidx.fragment.app.Fragment
 import com.accruesavings.androidsdk.provisioning.core.ActivityResultHandler
 
 class AccrueWallet : Fragment() {
-    val TAG: String = "AccrueWallet"
-    private lateinit var merchantId: String
+    private var merchantId: String? = null
     private var redirectionToken: String? = null
     private var isSandbox: Boolean = false
     private var url: String? = null
@@ -29,6 +28,12 @@ class AccrueWallet : Fragment() {
     private var activityResultHandler: ActivityResultHandler? = null
 
     companion object {
+        private const val TAG = "AccrueWallet"
+        private const val ARG_MERCHANT_ID = "com.accruesavings.androidsdk.AccrueWallet.ARG_MERCHANT_ID"
+        private const val ARG_REDIRECTION_TOKEN = "com.accruesavings.androidsdk.AccrueWallet.ARG_REDIRECTION_TOKEN"
+        private const val ARG_IS_SANDBOX = "com.accruesavings.androidsdk.AccrueWallet.ARG_IS_SANDBOX"
+        private const val ARG_URL = "com.accruesavings.androidsdk.AccrueWallet.ARG_URL"
+
         fun newInstance(
             merchantId: String,
             redirectionToken: String? = null,
@@ -37,8 +42,14 @@ class AccrueWallet : Fragment() {
             contextData: AccrueContextData = AccrueContextData(),
             onAction: Map<AccrueAction, () -> Unit> = emptyMap()
         ): AccrueWallet {
-            WebView.setWebContentsDebuggingEnabled(true);
+            WebView.setWebContentsDebuggingEnabled(true)
             return AccrueWallet().apply {
+                arguments = Bundle().apply {
+                    putString(ARG_MERCHANT_ID, merchantId)
+                    putString(ARG_REDIRECTION_TOKEN, redirectionToken)
+                    putBoolean(ARG_IS_SANDBOX, isSandbox)
+                    putString(ARG_URL, url)
+                }
                 this.merchantId = merchantId
                 this.redirectionToken = redirectionToken
                 this.isSandbox = isSandbox
@@ -72,8 +83,14 @@ class AccrueWallet : Fragment() {
             contextData: AccrueContextData = AccrueContextData(),
             onAction: Map<AccrueAction, () -> Unit> = emptyMap()
         ): AccrueWallet {
-            WebView.setWebContentsDebuggingEnabled(true);
+            WebView.setWebContentsDebuggingEnabled(true)
             return AccrueWallet().apply {
+                arguments = Bundle().apply {
+                    putString(ARG_MERCHANT_ID, merchantId)
+                    putString(ARG_REDIRECTION_TOKEN, redirectionToken)
+                    putBoolean(ARG_IS_SANDBOX, isSandbox)
+                    putString(ARG_URL, url)
+                }
                 this.merchantId = merchantId
                 this.redirectionToken = redirectionToken
                 this.isSandbox = isSandbox
@@ -94,6 +111,13 @@ class AccrueWallet : Fragment() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        restoreConfiguration(arguments)
+        restoreConfiguration(savedInstanceState)
+
+        if (merchantId.isNullOrBlank()) {
+            Log.w(TAG, "AccrueWallet merchantId is missing. Ensure newInstance was used with a valid merchantId.")
+        }
         
         // Initialize ActivityResultHandler for Google Pay operations
         activityResultHandler = ActivityResultHandler(this) { requestCode, resultCode, data ->
@@ -110,8 +134,15 @@ class AccrueWallet : Fragment() {
         inflater: LayoutInflater, container: ViewGroup?,
         savedInstanceState: Bundle?
     ): View {
-        val builtUrl = buildURL(isSandbox, url)
-        Log.v(TAG, "builtUrl=$builtUrl");
+        val merchantIdValue = merchantId?.takeIf { it.isNotBlank() }
+            ?: run {
+                val errorMsg = "AccrueWallet must be created using newInstance() or newInstanceWithEarlyInit() factory methods"
+                Log.e(TAG, errorMsg)
+                throw IllegalStateException(errorMsg)
+            }
+
+        val builtUrl = buildURL(isSandbox, url, merchantIdValue)
+        Log.v(TAG, "builtUrl=$builtUrl")
         // Create AccrueWebView programmatically
         webView = AccrueWebView(requireContext(), url = builtUrl, contextData, onAction)
         
@@ -137,7 +168,7 @@ class AccrueWallet : Fragment() {
         return webView
     }
 
-    private fun buildURL(isSandbox: Boolean, url: String?): String {
+    private fun buildURL(isSandbox: Boolean, url: String?, merchantIdParam: String): String {
         val apiBaseUrl = when {
             url != null -> url
             isSandbox -> AppConstants.sandboxUrl
@@ -145,7 +176,7 @@ class AccrueWallet : Fragment() {
         }
 
         val uri = Uri.parse(apiBaseUrl).buildUpon()
-            .appendQueryParameter("merchantId", merchantId)
+            .appendQueryParameter("merchantId", merchantIdParam)
 
         redirectionToken?.takeIf { it.isNotEmpty() }?.let {
             uri.appendQueryParameter("redirectionToken", it)
@@ -185,5 +216,28 @@ class AccrueWallet : Fragment() {
         // Clean up Provisioning resources
         provisioningMain?.cleanup()
         activityResultHandler = null
+    }
+
+    override fun onSaveInstanceState(outState: Bundle) {
+        super.onSaveInstanceState(outState)
+        merchantId?.let { outState.putString(ARG_MERCHANT_ID, it) }
+        redirectionToken?.let { outState.putString(ARG_REDIRECTION_TOKEN, it) }
+        outState.putBoolean(ARG_IS_SANDBOX, isSandbox)
+        url?.let { outState.putString(ARG_URL, it) }
+    }
+
+    private fun restoreConfiguration(bundle: Bundle?) {
+        bundle ?: return
+
+        bundle.getString(ARG_MERCHANT_ID)?.let { merchantId = it }
+        if (bundle.containsKey(ARG_REDIRECTION_TOKEN)) {
+            redirectionToken = bundle.getString(ARG_REDIRECTION_TOKEN)
+        }
+        if (bundle.containsKey(ARG_IS_SANDBOX)) {
+            isSandbox = bundle.getBoolean(ARG_IS_SANDBOX, false)
+        }
+        if (bundle.containsKey(ARG_URL)) {
+            url = bundle.getString(ARG_URL)
+        }
     }
 }
