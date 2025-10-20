@@ -19,11 +19,9 @@ class AccrueWallet : Fragment() {
     private var contextData: AccrueContextData = AccrueContextData()
         set(value) {
             field = value
-            if (::webView.isInitialized) {
-                webView.updateContextData(value)
-            }
+            webView?.updateContextData(value)
         }
-    private lateinit var webView: AccrueWebView
+    private var webView: AccrueWebView? = null
     private var provisioningMain: ProvisioningMain? = null
     private var activityResultHandler: ActivityResultHandler? = null
 
@@ -144,17 +142,18 @@ class AccrueWallet : Fragment() {
         val builtUrl = buildURL(isSandbox, url, merchantIdValue)
         Log.v(TAG, "builtUrl=$builtUrl")
         // Create AccrueWebView programmatically
-        webView = AccrueWebView(requireContext(), url = builtUrl, contextData, onAction)
+        val accrueWebView = AccrueWebView(requireContext(), url = builtUrl, contextData, onAction)
+        webView = accrueWebView
         
         // Initialize Provisioning if not already pre-initialized
         if (provisioningMain == null) {
             provisioningMain = ProvisioningMain(requireContext())
         }
-        provisioningMain?.initialize(requireActivity(), webView, activityResultHandler)
+        provisioningMain?.initialize(requireActivity(), accrueWebView, activityResultHandler)
         
         // Set the ProvisioningMain reference in the WebView
         provisioningMain?.let { provisioning ->
-            webView.setProvisioningMain(provisioning)
+            accrueWebView.setProvisioningMain(provisioning)
         }
         
         // Set layout parameters
@@ -162,10 +161,10 @@ class AccrueWallet : Fragment() {
             ViewGroup.LayoutParams.MATCH_PARENT,
             ViewGroup.LayoutParams.MATCH_PARENT
         )
-        webView.layoutParams = layoutParams
+        accrueWebView.layoutParams = layoutParams
 
         // Return the webView as the root view
-        return webView
+        return accrueWebView
     }
 
     private fun buildURL(isSandbox: Boolean, url: String?, merchantIdParam: String): String {
@@ -190,7 +189,13 @@ class AccrueWallet : Fragment() {
     }
 
     fun handleEvent(eventName: String, data: String?) {
-        webView.handleEvent(eventName, data ?: "{}")
+        val targetWebView = webView
+        if (targetWebView == null) {
+            Log.w(TAG, "handleEvent called before WebView initialization; ignoring event $eventName")
+            return
+        }
+
+        targetWebView.handleEvent(eventName, data ?: "{}")
     }
 
     
@@ -216,6 +221,11 @@ class AccrueWallet : Fragment() {
         // Clean up Provisioning resources
         provisioningMain?.cleanup()
         activityResultHandler = null
+    }
+
+    override fun onDestroyView() {
+        webView = null
+        super.onDestroyView()
     }
 
     override fun onSaveInstanceState(outState: Bundle) {
