@@ -11,7 +11,8 @@ data class AccrueUserData(
     val referenceId: String? = null,
     val email: String? = null,
     val phoneNumber: String? = null,
-    val additionalData: Map<String, String> = emptyMap()
+    val additionalData: Map<String, String> = emptyMap(),
+    val stableReferenceId: String? = null
 )
 
 data class AccrueSettingsData(
