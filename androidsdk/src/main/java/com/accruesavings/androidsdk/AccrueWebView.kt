@@ -36,7 +36,8 @@ fun contextToJson(contextData: AccrueContextData?): String {
                 "referenceId" to userData.referenceId,
                 "email" to userData.email,
                 "phoneNumber" to userData.phoneNumber,
-                "additionalData" to userData.additionalData
+                "additionalData" to userData.additionalData,
+                "stableReferenceId" to userData.stableReferenceId
             ),
             "settingsData" to mapOf(
                 "shouldInheritAuthentication" to settingsData.shouldInheritAuthentication
