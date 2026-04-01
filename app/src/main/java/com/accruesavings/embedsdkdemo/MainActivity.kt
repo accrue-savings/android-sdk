@@ -19,6 +19,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var redirectTokenInput: EditText
     private lateinit var phoneNumberInput: EditText
     private lateinit var referenceIdInput: EditText
+    private lateinit var stableReferenceIdInput: EditText
     private lateinit var reloadButton: Button
     private lateinit var sampleDatabutton: Button
     private lateinit var updateContextButton: Button
@@ -28,12 +29,14 @@ class MainActivity : AppCompatActivity() {
     private fun getContext(): AccrueContextData {
         val phoneNumber = phoneNumberInput.text.toString()
         val referenceId = referenceIdInput.text.toString()
+        val stableReferenceId = stableReferenceIdInput.text.toString()
         Log.i("AccrueWebView", "Phone number $phoneNumber")
         val userData = AccrueUserData(
-            referenceId.ifEmpty { null },
-            null,
-            phoneNumber.ifEmpty { null },
-            mapOf("firstName" to "Sasa", "lastName" to "Sijak")
+            referenceId = referenceId.ifEmpty { null },
+            email = null,
+            phoneNumber = phoneNumber.ifEmpty { null },
+            additionalData = mapOf("firstName" to "Sasa", "lastName" to "Sijak"),
+            stableReferenceId = stableReferenceId.ifEmpty { null }
         )
 
         val settingsData = AccrueSettingsData(
@@ -53,6 +56,7 @@ class MainActivity : AppCompatActivity() {
         redirectTokenInput = findViewById(R.id.redirect_token_input)
         phoneNumberInput = findViewById(R.id.phone_number_input)
         referenceIdInput = findViewById(R.id.reference_id_input)
+        stableReferenceIdInput = findViewById(R.id.stable_reference_id_input)
         reloadButton = findViewById(R.id.reload_button)
         sampleDatabutton = findViewById(R.id.use_sample_values_button)
         updateContextButton = findViewById(R.id.update_context_button)
@@ -62,6 +66,7 @@ class MainActivity : AppCompatActivity() {
             merchantIdInput.setText(SampleData.merchantId)
             phoneNumberInput.setText(SampleData.phoneNumber)
             referenceIdInput.setText(SampleData.referenceId)
+            stableReferenceIdInput.setText(SampleData.stableReferenceId)
         }
 
         updateContextButton.setOnClickListener {

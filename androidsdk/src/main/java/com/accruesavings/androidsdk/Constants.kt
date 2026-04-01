@@ -36,4 +36,5 @@ object SampleData {
     const val redirectionToken = ""
     const val phoneNumber = "+12175554001"
     const val referenceId = "abk8QGLrEhH7oGfRnZ2NbX5sx2"
+    const val stableReferenceId = "sample-stable-ref-id"
 }
