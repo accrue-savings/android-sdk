@@ -36,6 +36,8 @@ jobs:
       from_tag: ${{ steps.semver.outputs.current }}
       to_tag: ${{ steps.semver.outputs.next }}
       changelog: ${{ steps.changelog.outputs.changes }}
+      # When false, repo files already matched NEXT_VERSION (no sed diff) — skip publish to avoid duplicate Maven/GitHub Packages release.
+      should_release: ${{ steps.bump.outputs.changed }}
     steps:
       - name: checkout
         uses: actions/checkout@v4
@@ -84,6 +86,7 @@ jobs:
           patchAll: ${{ github.event.inputs.version_type == 'patch' && 'true' || 'false' }}
 
       - name: Update Package Version
+        id: bump
         run: |
           NEXT_VERSION="${{ steps.semver.outputs.next }}"
           echo "Updating version to ${NEXT_VERSION}"
@@ -97,21 +100,30 @@ jobs:
           # Update AccrueContextData.kt - sdkVersion
           sed -i "s/sdkVersion: String? = \"v[0-9]*\.[0-9]*\.[0-9]*\"/sdkVersion: String? = \"${NEXT_VERSION}\"/" androidsdk/src/main/java/com/accruesavings/androidsdk/AccrueContextData.kt
 
-          # Commit changes
+          # Commit only when sed actually changed files (avoid git commit failing on clean tree).
+          # If nothing changed, repo already matches NEXT_VERSION — do not publish (avoids duplicate package for v1.3.1 etc.).
           git config --global user.name "Github Workflow"
           git config --global user.email "githubworkflow@accruemoney.com"
           git add -A
-          git commit -m "build: updating package version to ${NEXT_VERSION} [skip ci]"
-          git push origin main
+          if git diff --staged --quiet; then
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+            echo "No version file changes; repo already at ${NEXT_VERSION}. Skipping commit, push, and publish."
+          else
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+            git commit -m "build: updating package version to ${NEXT_VERSION} [skip ci]"
+            git push origin main
+          fi
           sleep 10
 
       - name: Publish Package
+        if: steps.bump.outputs.changed == 'true'
         run: ./gradlew publish
         env:
           GPR_USER: ${{ github.actor }}
           GPR_API_KEY: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Create Pre-release
+        if: steps.bump.outputs.changed == 'true'
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ steps.semver.outputs.next }}
@@ -122,6 +134,7 @@ jobs:
 
       - name: Update CHANGELOG
         id: changelog
+        if: steps.bump.outputs.changed == 'true'
         uses: requarks/changelog-action@v1
         with:
           token: ${{ github.token }}
@@ -132,6 +145,7 @@ jobs:
 
   create-release:
     name: create-release
+    if: needs.version.outputs.should_release == 'true'
     needs: version
     runs-on: ubuntu-latest
     steps:
