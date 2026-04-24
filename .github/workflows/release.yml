@@ -84,7 +84,7 @@ jobs:
           maxTagsToFetch: 40
           majorList: ${{ github.event.inputs.version_type == 'major' && 'major' || '' }}
           minorList: ${{ github.event.inputs.version_type == 'minor' && 'minor' || '' }}
-          patchAll: ${{ github.event.inputs.version_type == 'patch' && 'true' || 'false' }}
+          patchAll: true
 
       - name: Update Package Version
         id: bump
