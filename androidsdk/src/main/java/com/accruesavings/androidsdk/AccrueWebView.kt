@@ -139,6 +139,7 @@ class AccrueWebView @JvmOverloads constructor(
                 when (key) {
                     AccrueWebEvents.accrueWalletSignInButtonClickedKey -> onAction[AccrueAction.SignInButtonClicked]?.invoke()
                     AccrueWebEvents.accrueWalletRegisterButtonClickedKey -> onAction[AccrueAction.RegisterButtonClicked]?.invoke()
+                    AccrueWebEvents.accrueWalletUpdateNumberClickedKey -> onAction[AccrueAction.UpdateNumberClicked]?.invoke()
                     AccrueWebEvents.accrueWalletGoogleWalletProvisioningIsSupportedRequestedKey -> {
                         Log.i("AccrueWebView", "Google Wallet Provisioning Is Supported Requested")
                         webView.sendGoogleWalletProvisioningIsSupportedStatus(isAutomatic = false)

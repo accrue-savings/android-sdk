@@ -14,6 +14,7 @@ object AccrueWebEvents {
     const val accrueWalletSignInPerformedMessageKey: String = "AccrueWallet::SignInPerformed"
     const val accrueWalletSignInButtonClickedKey: String = "AccrueWallet::SignInButtonClicked"
     const val accrueWalletRegisterButtonClickedKey: String = "AccrueWallet::RegisterButtonClicked"
+    const val accrueWalletUpdateNumberClickedKey: String = "AccrueWallet::UpdateNumberClicked"
     const val accrueWalletContextChangedEventKey: String = "AccrueWallet::ContextChanged"
     const val accrueWalletParentAppEventKey: String = "AccrueWallet::ParentAppEvent"
     
