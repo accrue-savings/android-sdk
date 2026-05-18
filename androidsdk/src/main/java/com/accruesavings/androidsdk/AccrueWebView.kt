@@ -65,7 +65,8 @@ class AccrueWebView @JvmOverloads constructor(
     context: Context,
     private var url: String,
     private var contextData: AccrueContextData? = null,
-    private var onAction: Map<AccrueAction, () -> Unit> = emptyMap()
+    private var onAction: Map<AccrueAction, () -> Unit> = emptyMap(),
+    private val shouldLoadImmediately: Boolean = true
 ) : WebView(context) {
 
     private var webAppInterface: WebAppInterface? = null
@@ -104,8 +105,14 @@ class AccrueWebView @JvmOverloads constructor(
         webAppInterface = WebAppInterface(this.onAction, contextData, this)
         addJavascriptInterface(webAppInterface!!, AccrueWebEvents.eventHandlerName)
 
-        // Load URL
-        loadUrl(url)
+        if (shouldLoadImmediately) {
+            loadWidgetUrl(url)
+        }
+    }
+
+    internal fun loadWidgetUrl(widgetUrl: String) {
+        url = widgetUrl
+        loadUrl(widgetUrl)
     }
 
     private class WebAppInterface(
