@@ -1,9 +1,6 @@
 package com.accruesavings.androidsdk
 
 object AppConstants {
-    // Mocked testing environment
-    const val sandboxUrl: String = "https://embed-sandbox.accruesavings.com/webview"
-    const val productionUrl: String = "https://embed.accruesavings.com/webview"
     // Mocked merchantId
     const val merchantId: String = "08b13e48-06be-488f-9a93-91f59d94f30d"
     const val redirectionToken = "redirection-token"
