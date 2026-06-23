@@ -6,12 +6,12 @@ plugins {
 
 android {
     namespace = "com.accruesavings.accruepaysdkdemo"
-    compileSdk = 34
+    compileSdk = 35
 
     defaultConfig {
         applicationId = "com.accruesavings.accruepaysdkdemo"
         minSdk = 24
-        targetSdk = 34
+        targetSdk = 35
         versionCode = 1
         versionName = "1.0"
 

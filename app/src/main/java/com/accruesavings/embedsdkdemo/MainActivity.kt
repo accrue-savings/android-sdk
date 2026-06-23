@@ -4,7 +4,6 @@ import android.os.Bundle
 import android.util.Log
 import android.widget.Button
 import android.widget.EditText
-import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatActivity
 import com.accruesavings.accruepaysdkdemo.R
 import com.accruesavings.androidsdk.AccrueAction
@@ -13,17 +12,20 @@ import com.accruesavings.androidsdk.AccrueSettingsData
 import com.accruesavings.androidsdk.AccrueUserData
 import com.accruesavings.androidsdk.AccrueWallet
 import com.accruesavings.androidsdk.SampleData
+import com.google.android.material.bottomnavigation.BottomNavigationView
 
 class MainActivity : AppCompatActivity() {
+    private lateinit var urlInput: EditText
     private lateinit var merchantIdInput: EditText
     private lateinit var redirectTokenInput: EditText
     private lateinit var phoneNumberInput: EditText
     private lateinit var referenceIdInput: EditText
     private lateinit var stableReferenceIdInput: EditText
     private lateinit var reloadButton: Button
-    private lateinit var sampleDatabutton: Button
+    private lateinit var sampleDataButton: Button
     private lateinit var updateContextButton: Button
     private lateinit var goToHomeButton: Button
+    private lateinit var bottomNav: BottomNavigationView
     private var accrueWallet: AccrueWallet? = null
 
     private fun getContext(): AccrueContextData {
@@ -43,30 +45,35 @@ class MainActivity : AppCompatActivity() {
             shouldInheritAuthentication = true
         )
 
-        val contextData = AccrueContextData(userData, settingsData)
-        return contextData
+        return AccrueContextData(userData, settingsData)
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        enableEdgeToEdge()
         setContentView(R.layout.activity_main)
 
+        urlInput = findViewById(R.id.url_input)
         merchantIdInput = findViewById(R.id.merchant_id_input)
         redirectTokenInput = findViewById(R.id.redirect_token_input)
         phoneNumberInput = findViewById(R.id.phone_number_input)
         referenceIdInput = findViewById(R.id.reference_id_input)
         stableReferenceIdInput = findViewById(R.id.stable_reference_id_input)
         reloadButton = findViewById(R.id.reload_button)
-        sampleDatabutton = findViewById(R.id.use_sample_values_button)
+        sampleDataButton = findViewById(R.id.use_sample_values_button)
         updateContextButton = findViewById(R.id.update_context_button)
         goToHomeButton = findViewById(R.id.go_to_home_button)
+        bottomNav = findViewById(R.id.bottom_nav)
 
-        sampleDatabutton.setOnClickListener {
+        // Leave empty to load from production. For local dev: http://localhost:5173/webview
+        // (requires `adb reverse tcp:5173 tcp:5173` on the host first)
+
+        sampleDataButton.setOnClickListener {
+            urlInput.setText(SampleData.url)
             merchantIdInput.setText(SampleData.merchantId)
             phoneNumberInput.setText(SampleData.phoneNumber)
             referenceIdInput.setText(SampleData.referenceId)
             stableReferenceIdInput.setText(SampleData.stableReferenceId)
+            loadAccrueWallet()
         }
 
         updateContextButton.setOnClickListener {
@@ -80,29 +87,30 @@ class MainActivity : AppCompatActivity() {
         reloadButton.setOnClickListener {
             loadAccrueWallet()
         }
+
+        bottomNav.setOnItemSelectedListener { true }
     }
-    
+
     private fun loadAccrueWallet() {
+        val url = urlInput.text.toString().trim()
         val merchantId = merchantIdInput.text.toString()
         val redirectionToken = redirectTokenInput.text.toString()
         val contextData = getContext()
 
-        // Remove existing fragment if it exists
-        accrueWallet?.let { existingWallet ->
+        // Remove existing fragment if present
+        accrueWallet?.let { existing ->
             supportFragmentManager.beginTransaction()
-                .remove(existingWallet)
+                .remove(existing)
                 .commit()
         }
 
-
-        // Create new AccrueWallet instance with early initialization to prevent lifecycle issues
         accrueWallet = AccrueWallet.newInstanceWithEarlyInit(
             activity = this,
             contextData = contextData,
             redirectionToken = redirectionToken,
             isSandbox = false,
             merchantId = merchantId,
-            url = "http://localhost:5173/webview",
+            url = url.ifEmpty { null },
             onAction = mapOf(
                 AccrueAction.SignInButtonClicked to {
                     Log.i("AccrueWebView", "SIGN IN BUTTON HANDLER ACTIVATED")
@@ -115,7 +123,7 @@ class MainActivity : AppCompatActivity() {
                 }
             )
         )
-        
+
         supportFragmentManager.beginTransaction()
             .replace(R.id.fragment_container, accrueWallet!!)
             .commit()
