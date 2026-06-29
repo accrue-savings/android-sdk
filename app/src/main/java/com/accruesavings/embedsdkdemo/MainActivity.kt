@@ -113,7 +113,10 @@ class MainActivity : AppCompatActivity() {
                 AccrueAction.GoogleWalletProvisioningRequested to {
                     Log.i("AccrueWebView", "GOOGLE WALLET PROVISIONING REQUESTED HANDLER ACTIVATED")
                 }
-            )
+            ),
+            onSignInPerformed = { payload ->
+                Log.i("AccrueWebView", "SIGN IN PERFORMED: userId=${payload.id}, isNewUser=${payload.isNewUser}")
+            }
         )
         
         supportFragmentManager.beginTransaction()

@@ -65,7 +65,8 @@ class AccrueWebView @JvmOverloads constructor(
     context: Context,
     private var url: String,
     private var contextData: AccrueContextData? = null,
-    private var onAction: Map<AccrueAction, () -> Unit> = emptyMap()
+    private var onAction: Map<AccrueAction, () -> Unit> = emptyMap(),
+    private var onSignInPerformed: ((AccrueSignInPayload) -> Unit)? = null,
 ) : WebView(context) {
 
     private var webAppInterface: WebAppInterface? = null
@@ -137,6 +138,19 @@ class AccrueWebView @JvmOverloads constructor(
                 val key = jsonObject.optString("key")
 
                 when (key) {
+                    AccrueWebEvents.accrueWalletSignInPerformedMessageKey -> {
+                        val data = jsonObject.optJSONObject("data")
+                        if (data != null) {
+                            val payload = AccrueSignInPayload(
+                                id = data.optString("id"),
+                                referenceId = data.optString("referenceId").ifEmpty { null },
+                                stableReferenceId = data.optString("stableReferenceId").ifEmpty { null },
+                                effectiveReferenceId = data.optString("effectiveReferenceId").ifEmpty { null },
+                                isNewUser = data.optBoolean("isNewUser", false),
+                            )
+                            onSignInPerformed?.invoke(payload)
+                        }
+                    }
                     AccrueWebEvents.accrueWalletSignInButtonClickedKey -> onAction[AccrueAction.SignInButtonClicked]?.invoke()
                     AccrueWebEvents.accrueWalletRegisterButtonClickedKey -> onAction[AccrueAction.RegisterButtonClicked]?.invoke()
                     AccrueWebEvents.accrueWalletUpdateNumberClickedKey -> onAction[AccrueAction.UpdateNumberClicked]?.invoke()
