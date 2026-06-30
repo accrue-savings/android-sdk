@@ -22,13 +22,12 @@ import androidx.browser.customtabs.CustomTabsIntent
 import androidx.core.net.toUri
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
-import androidx.fragment.app.FragmentActivity
 import androidx.webkit.WebSettingsCompat
 import androidx.webkit.WebViewFeature
 
 fun contextToJson(contextData: AccrueContextData?): String {
     if(contextData === null) {
-        return "";
+        return ""
     }
     val userData = contextData.userData
     val settingsData = contextData.settingsData
@@ -61,7 +60,7 @@ fun contextToJson(contextData: AccrueContextData?): String {
             )
         ))).toString()
     Log.i("AccrueWebView", "Constructed accrue context data $finalContextData")
-    return finalContextData;
+    return finalContextData
 }
 
 class AccrueWebView @JvmOverloads constructor(
@@ -164,7 +163,7 @@ class AccrueWebView @JvmOverloads constructor(
         // to avoid duplicate initialization
         
         // Add JavaScript interface and context data
-        webAppInterface = WebAppInterface(this.onAction, contextData, this)
+        webAppInterface = WebAppInterface(this.onAction, contextData, this, this.onSignInPerformed)
         addJavascriptInterface(webAppInterface!!, AccrueWebEvents.eventHandlerName)
 
         // Load URL
@@ -174,7 +173,8 @@ class AccrueWebView @JvmOverloads constructor(
     private class WebAppInterface(
         private val onAction: Map<AccrueAction, () -> Unit> = emptyMap(),
         private var _contextData: AccrueContextData?,
-        private val webView: AccrueWebView
+        private val webView: AccrueWebView,
+        private val onSignInPerformed: ((AccrueSignInPayload) -> Unit)? = null,
     ) {
         var contextData: AccrueContextData?
             get() = _contextData
