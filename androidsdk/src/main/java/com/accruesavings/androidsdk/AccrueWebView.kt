@@ -2,6 +2,7 @@ package com.accruesavings.androidsdk
 
 import android.annotation.SuppressLint
 import android.content.ActivityNotFoundException
+import android.view.ViewTreeObserver
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
@@ -19,6 +20,8 @@ import org.json.JSONException
 import org.json.JSONObject
 import androidx.browser.customtabs.CustomTabsIntent
 import androidx.core.net.toUri
+import androidx.core.view.ViewCompat
+import androidx.core.view.WindowInsetsCompat
 import androidx.fragment.app.FragmentActivity
 import androidx.webkit.WebSettingsCompat
 import androidx.webkit.WebViewFeature
@@ -72,14 +75,73 @@ class AccrueWebView @JvmOverloads constructor(
     private var webAppInterface: WebAppInterface? = null
     private var provisioningMain: ProvisioningMain? = null
     internal var hasInitialLoadCompleted = false
+    private var bottomInsetPx: Int = 0
+
+    private val globalLayoutListener = ViewTreeObserver.OnGlobalLayoutListener {
+        ViewCompat.getRootWindowInsets(this)?.let { insets ->
+            val navBarHeight = insets.getInsets(WindowInsetsCompat.Type.navigationBars()).bottom
+            val newInset = computeBottomInsetPx(navBarHeight)
+            if (newInset != bottomInsetPx) {
+                bottomInsetPx = newInset
+                injectBottomInset()
+            }
+        }
+    }
 
     init {
         setupWebView()
     }
 
+    internal fun injectBottomInset() {
+        val density = resources.displayMetrics.density
+        val cssPx = bottomInsetPx / density
+        evaluateJavascript(
+            "document.documentElement.style.setProperty('--accrue-bottom-inset', '${cssPx}px')",
+            null
+        )
+    }
+
+    // Returns how many physical pixels the WebView's bottom edge overlaps the system nav bar.
+    // Only fires when the WebView extends directly behind the nav bar (full-screen / edge-to-edge).
+    // Properly-constrained layouts (e.g. LinearLayout weight=1 + wrap_content BottomNav) end
+    // above the nav bar so overlap is negative and this returns 0.
+    private fun computeBottomInsetPx(navBarHeightPx: Int): Int {
+        if (navBarHeightPx <= 0) return 0
+
+        val screenHeight = resources.displayMetrics.heightPixels
+        val location = IntArray(2)
+        getLocationOnScreen(location)
+        val viewBottom = location[1] + height
+
+        val overlap = viewBottom - (screenHeight - navBarHeightPx)
+        return maxOf(0, overlap)
+    }
+
+    override fun onAttachedToWindow() {
+        super.onAttachedToWindow()
+        viewTreeObserver.addOnGlobalLayoutListener(globalLayoutListener)
+    }
+
+    override fun onDetachedFromWindow() {
+        viewTreeObserver.removeOnGlobalLayoutListener(globalLayoutListener)
+        super.onDetachedFromWindow()
+    }
+
     @SuppressLint("SetJavaScriptEnabled")
     private fun setupWebView() {
         overScrollMode = OVER_SCROLL_NEVER
+
+        // Track the actual overlap between the WebView's bottom edge and the system
+        // navigation bar. In edge-to-edge mode the WebView extends to the screen
+        // bottom so overlap == nav bar height. In non-edge-to-edge mode the WebView
+        // stops above the nav bar so overlap == 0 and nothing is injected.
+        ViewCompat.setOnApplyWindowInsetsListener(this) { _, windowInsets ->
+            val navBarHeight = windowInsets.getInsets(WindowInsetsCompat.Type.navigationBars()).bottom
+            bottomInsetPx = computeBottomInsetPx(navBarHeight)
+            injectBottomInset()
+            windowInsets
+        }
+
         settings.javaScriptEnabled = true
 
         if (WebViewFeature.isFeatureSupported(
@@ -400,7 +462,8 @@ class AccrueWebView @JvmOverloads constructor(
 
         override fun onPageFinished(view: WebView?, url: String?) {
             super.onPageFinished(view, url)
-            
+            webView.injectBottomInset()
+
             if (webView.hasInitialLoadCompleted) {
                 return
             }
