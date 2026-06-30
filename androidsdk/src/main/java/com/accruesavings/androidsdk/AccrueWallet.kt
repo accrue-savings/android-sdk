@@ -16,6 +16,7 @@ class AccrueWallet : Fragment() {
     private var isSandbox: Boolean = false
     private var url: String? = null
     private var onAction: Map<AccrueAction, () -> Unit> = emptyMap()
+    private var onSignInPerformed: ((AccrueSignInPayload) -> Unit)? = null
     private var contextData: AccrueContextData = AccrueContextData()
         set(value) {
             field = value
@@ -38,7 +39,8 @@ class AccrueWallet : Fragment() {
             isSandbox: Boolean = false,
             url: String? = null,
             contextData: AccrueContextData = AccrueContextData(),
-            onAction: Map<AccrueAction, () -> Unit> = emptyMap()
+            onAction: Map<AccrueAction, () -> Unit> = emptyMap(),
+            onSignInPerformed: ((AccrueSignInPayload) -> Unit)? = null,
         ): AccrueWallet {
             WebView.setWebContentsDebuggingEnabled(true)
             return AccrueWallet().apply {
@@ -54,6 +56,7 @@ class AccrueWallet : Fragment() {
                 this.url = url
                 this.contextData = contextData
                 this.onAction = onAction
+                this.onSignInPerformed = onSignInPerformed
             }
         }
         
@@ -79,7 +82,8 @@ class AccrueWallet : Fragment() {
             isSandbox: Boolean = false,
             url: String? = null,
             contextData: AccrueContextData = AccrueContextData(),
-            onAction: Map<AccrueAction, () -> Unit> = emptyMap()
+            onAction: Map<AccrueAction, () -> Unit> = emptyMap(),
+            onSignInPerformed: ((AccrueSignInPayload) -> Unit)? = null,
         ): AccrueWallet {
             WebView.setWebContentsDebuggingEnabled(true)
             return AccrueWallet().apply {
@@ -95,6 +99,7 @@ class AccrueWallet : Fragment() {
                 this.url = url
                 this.contextData = contextData
                 this.onAction = onAction
+                this.onSignInPerformed = onSignInPerformed
                 
                 // Pre-initialize Google Wallet Provisioning
                 try {
@@ -142,7 +147,7 @@ class AccrueWallet : Fragment() {
         val builtUrl = buildURL(isSandbox, url, merchantIdValue)
         Log.v(TAG, "builtUrl=$builtUrl")
         // Create AccrueWebView programmatically
-        val accrueWebView = AccrueWebView(requireContext(), url = builtUrl, contextData, onAction)
+        val accrueWebView = AccrueWebView(requireContext(), url = builtUrl, contextData, onAction, onSignInPerformed)
         webView = accrueWebView
         
         // Initialize Provisioning if not already pre-initialized
