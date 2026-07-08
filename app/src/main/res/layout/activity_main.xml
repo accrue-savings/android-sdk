@@ -7,34 +7,44 @@
     android:layout_height="match_parent"
     tools:context="com.accruesavings.embedsdkdemo.MainActivity">
 
+    <!--
+        Config panel: sits at the very top of the screen (behind status bar area
+        when edge-to-edge is active — acceptable for a debug harness).
+    -->
     <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="match_parent"
+        android:id="@+id/config_panel"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
         android:orientation="vertical"
-        android:padding="16dp">
+        android:padding="8dp"
+        android:background="#F5F5F5"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent">
 
-        <TextView
-            android:id="@+id/title_text"
-            android:layout_width="wrap_content"
+        <EditText
+            android:id="@+id/url_input"
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="@string/app_name"
-            android:textSize="24sp"
-            android:textStyle="bold"
-            android:layout_marginBottom="16dp"/>
+            android:hint="Embed URL (e.g. http://10.0.2.2:5173/webview)"
+            android:inputType="textUri"
+            android:textSize="12sp"/>
 
         <EditText
             android:id="@+id/merchant_id_input"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:hint="@string/merchant_id_label"
-            android:inputType="text"/>
+            android:inputType="text"
+            android:textSize="12sp"/>
 
         <EditText
             android:id="@+id/redirect_token_input"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:hint="@string/redirect_token_lagel"
-            android:inputType="text"/>
+            android:inputType="text"
+            android:textSize="12sp"/>
 
         <EditText
             android:id="@+id/phone_number_input"
@@ -42,28 +52,23 @@
             android:layout_height="wrap_content"
             android:hint="Phone Number"
             android:inputType="phone"
-            android:layout_marginHorizontal="16dp"
-            android:layout_marginTop="8dp" />
+            android:textSize="12sp"/>
 
         <EditText
             android:id="@+id/reference_id_input"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:hint="Reference ID"
-            android:inputType="text" />
+            android:inputType="text"
+            android:textSize="12sp"/>
 
         <EditText
             android:id="@+id/stable_reference_id_input"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:hint="Stable reference ID"
-            android:inputType="text" />
-
-        <Button
-            android:id="@+id/go_to_home_button"
-            android:layout_width="323dp"
-            android:layout_height="wrap_content"
-            android:text="Go To Home" />
+            android:hint="Stable Reference ID"
+            android:inputType="text"
+            android:textSize="12sp"/>
 
         <LinearLayout
             android:layout_width="match_parent"
@@ -74,32 +79,68 @@
                 android:id="@+id/reload_button"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="16dp"
-                android:text="@string/reload_button" />
+                android:text="@string/reload_button"
+                android:textSize="11sp"/>
 
             <Button
                 android:id="@+id/use_sample_values_button"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="16dp"
-                android:text="@string/use_sample_values_button" />
+                android:text="@string/use_sample_values_button"
+                android:textSize="11sp"/>
 
             <Button
                 android:id="@+id/update_context_button"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="16dp"
-                android:text="@string/update_context_button" />
+                android:text="@string/update_context_button"
+                android:textSize="11sp"/>
 
         </LinearLayout>
 
-        <FrameLayout
-            android:id="@+id/fragment_container"
-            android:layout_width="384dp"
-            android:layout_height="278dp"
-            android:layout_weight="1">
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal">
 
-        </FrameLayout>
+            <Button
+                android:id="@+id/go_to_home_button"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Home"
+                android:textSize="11sp"/>
+
+        </LinearLayout>
+
     </LinearLayout>
+
+    <!--
+        WebView fragment container.
+
+        Mirrors the Snipes layout pattern: constrained to end at the BottomNav's top,
+        equivalent to LinearLayout weight=1. On Android 15+ Material adds navBarHeight
+        as bottom padding to the BottomNav, so the BottomNav grows downward and the
+        fragment container ends above both the nav content and the system nav bar.
+        The WebView is fully above the nav bar — no inset injection needed.
+    -->
+    <FrameLayout
+        android:id="@+id/fragment_container"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        app:layout_constraintTop_toBottomOf="@id/config_panel"
+        app:layout_constraintBottom_toTopOf="@id/bottom_nav"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"/>
+
+    <!-- Simulated merchant bottom navigation bar. -->
+    <com.google.android.material.bottomnavigation.BottomNavigationView
+        android:id="@+id/bottom_nav"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:elevation="8dp"
+        app:menu="@menu/bottom_nav_menu"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"/>
 
 </androidx.constraintlayout.widget.ConstraintLayout>

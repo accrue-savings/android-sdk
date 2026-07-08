@@ -2,6 +2,7 @@ package com.accruesavings.androidsdk
 
 import android.annotation.SuppressLint
 import android.content.ActivityNotFoundException
+import android.view.ViewTreeObserver
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
@@ -19,13 +20,14 @@ import org.json.JSONException
 import org.json.JSONObject
 import androidx.browser.customtabs.CustomTabsIntent
 import androidx.core.net.toUri
-import androidx.fragment.app.FragmentActivity
+import androidx.core.view.ViewCompat
+import androidx.core.view.WindowInsetsCompat
 import androidx.webkit.WebSettingsCompat
 import androidx.webkit.WebViewFeature
 
 fun contextToJson(contextData: AccrueContextData?): String {
     if(contextData === null) {
-        return "";
+        return ""
     }
     val userData = contextData.userData
     val settingsData = contextData.settingsData
@@ -58,7 +60,7 @@ fun contextToJson(contextData: AccrueContextData?): String {
             )
         ))).toString()
     Log.i("AccrueWebView", "Constructed accrue context data $finalContextData")
-    return finalContextData;
+    return finalContextData
 }
 
 class AccrueWebView @JvmOverloads constructor(
@@ -66,20 +68,95 @@ class AccrueWebView @JvmOverloads constructor(
     private var url: String,
     private var contextData: AccrueContextData? = null,
     private var onAction: Map<AccrueAction, () -> Unit> = emptyMap(),
-    private val shouldLoadImmediately: Boolean = true
+    private var onSignInPerformed: ((AccrueSignInPayload) -> Unit)? = null,
+    private val shouldLoadImmediately: Boolean = true,
 ) : WebView(context) {
+
+    constructor(
+        context: Context,
+        url: String,
+        contextData: AccrueContextData? = null,
+        onAction: Map<AccrueAction, () -> Unit> = emptyMap(),
+        shouldLoadImmediately: Boolean,
+    ) : this(
+        context = context,
+        url = url,
+        contextData = contextData,
+        onAction = onAction,
+        onSignInPerformed = null,
+        shouldLoadImmediately = shouldLoadImmediately
+    )
 
     private var webAppInterface: WebAppInterface? = null
     private var provisioningMain: ProvisioningMain? = null
     internal var hasInitialLoadCompleted = false
+    private var bottomInsetPx: Int = 0
+
+    private val globalLayoutListener = ViewTreeObserver.OnGlobalLayoutListener {
+        ViewCompat.getRootWindowInsets(this)?.let { insets ->
+            val navBarHeight = insets.getInsets(WindowInsetsCompat.Type.navigationBars()).bottom
+            val newInset = computeBottomInsetPx(navBarHeight)
+            if (newInset != bottomInsetPx) {
+                bottomInsetPx = newInset
+                injectBottomInset()
+            }
+        }
+    }
 
     init {
         setupWebView()
     }
 
+    internal fun injectBottomInset() {
+        val density = resources.displayMetrics.density
+        val cssPx = bottomInsetPx / density
+        evaluateJavascript(
+            "document.documentElement.style.setProperty('--accrue-bottom-inset', '${cssPx}px')",
+            null
+        )
+    }
+
+    // Returns how many physical pixels the WebView's bottom edge overlaps the system nav bar.
+    // Only fires when the WebView extends directly behind the nav bar (full-screen / edge-to-edge).
+    // Properly-constrained layouts (e.g. LinearLayout weight=1 + wrap_content BottomNav) end
+    // above the nav bar so overlap is negative and this returns 0.
+    private fun computeBottomInsetPx(navBarHeightPx: Int): Int {
+        if (navBarHeightPx <= 0) return 0
+
+        val screenHeight = resources.displayMetrics.heightPixels
+        val location = IntArray(2)
+        getLocationOnScreen(location)
+        val viewBottom = location[1] + height
+
+        val overlap = viewBottom - (screenHeight - navBarHeightPx)
+        return maxOf(0, overlap)
+    }
+
+    override fun onAttachedToWindow() {
+        super.onAttachedToWindow()
+        viewTreeObserver.addOnGlobalLayoutListener(globalLayoutListener)
+    }
+
+    override fun onDetachedFromWindow() {
+        viewTreeObserver.removeOnGlobalLayoutListener(globalLayoutListener)
+        super.onDetachedFromWindow()
+    }
+
     @SuppressLint("SetJavaScriptEnabled")
     private fun setupWebView() {
         overScrollMode = OVER_SCROLL_NEVER
+
+        // Track the actual overlap between the WebView's bottom edge and the system
+        // navigation bar. In edge-to-edge mode the WebView extends to the screen
+        // bottom so overlap == nav bar height. In non-edge-to-edge mode the WebView
+        // stops above the nav bar so overlap == 0 and nothing is injected.
+        ViewCompat.setOnApplyWindowInsetsListener(this) { _, windowInsets ->
+            val navBarHeight = windowInsets.getInsets(WindowInsetsCompat.Type.navigationBars()).bottom
+            bottomInsetPx = computeBottomInsetPx(navBarHeight)
+            injectBottomInset()
+            windowInsets
+        }
+
         settings.javaScriptEnabled = true
 
         if (WebViewFeature.isFeatureSupported(
@@ -102,7 +179,7 @@ class AccrueWebView @JvmOverloads constructor(
         // to avoid duplicate initialization
         
         // Add JavaScript interface and context data
-        webAppInterface = WebAppInterface(this.onAction, contextData, this)
+        webAppInterface = WebAppInterface(this.onAction, contextData, this, this.onSignInPerformed)
         addJavascriptInterface(webAppInterface!!, AccrueWebEvents.eventHandlerName)
 
         if (shouldLoadImmediately) {
@@ -118,7 +195,8 @@ class AccrueWebView @JvmOverloads constructor(
     private class WebAppInterface(
         private val onAction: Map<AccrueAction, () -> Unit> = emptyMap(),
         private var _contextData: AccrueContextData?,
-        private val webView: AccrueWebView
+        private val webView: AccrueWebView,
+        private val onSignInPerformed: ((AccrueSignInPayload) -> Unit)? = null,
     ) {
         var contextData: AccrueContextData?
             get() = _contextData
@@ -144,6 +222,19 @@ class AccrueWebView @JvmOverloads constructor(
                 val key = jsonObject.optString("key")
 
                 when (key) {
+                    AccrueWebEvents.accrueWalletSignInPerformedMessageKey -> {
+                        val data = jsonObject.optJSONObject("data")
+                        if (data != null) {
+                            val payload = AccrueSignInPayload(
+                                id = data.optString("id"),
+                                referenceId = data.optString("referenceId").ifEmpty { null },
+                                stableReferenceId = data.optString("stableReferenceId").ifEmpty { null },
+                                effectiveReferenceId = data.optString("effectiveReferenceId").ifEmpty { null },
+                                isNewUser = data.optBoolean("isNewUser", false),
+                            )
+                            onSignInPerformed?.invoke(payload)
+                        }
+                    }
                     AccrueWebEvents.accrueWalletSignInButtonClickedKey -> onAction[AccrueAction.SignInButtonClicked]?.invoke()
                     AccrueWebEvents.accrueWalletRegisterButtonClickedKey -> onAction[AccrueAction.RegisterButtonClicked]?.invoke()
                     AccrueWebEvents.accrueWalletUpdateNumberClickedKey -> onAction[AccrueAction.UpdateNumberClicked]?.invoke()
@@ -393,7 +484,8 @@ class AccrueWebView @JvmOverloads constructor(
 
         override fun onPageFinished(view: WebView?, url: String?) {
             super.onPageFinished(view, url)
-            
+            webView.injectBottomInset()
+
             if (webView.hasInitialLoadCompleted) {
                 return
             }

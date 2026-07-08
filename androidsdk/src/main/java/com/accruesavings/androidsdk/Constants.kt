@@ -29,10 +29,10 @@ object AccrueWebEvents {
 }
 
 object SampleData {
-//    const val merchantId = "e510593e-b975-4f94-baa6-2ae42a8fa6f5"
-    const val merchantId = "d0069102-e4a1-410b-ad82-ebe278d7785d" //snipes in sandbox
+    const val url = "http://localhost:5173/webview" // requires: adb reverse tcp:5173 tcp:5173
+    const val merchantId = "61afbcef-0fd7-4b2e-92b9-d6baf123dec4"
     const val redirectionToken = ""
-    const val phoneNumber = "+12175554001"
-    const val referenceId = "abk8QGLrEhH7oGfRnZ2NbX5sx2"
-    const val stableReferenceId = "sample-stable-ref-id"
+    const val phoneNumber = "2125555813"
+    const val referenceId = "bcaNNF9mtF2tc1SjxW7NuTm353"
+    const val stableReferenceId = ""
 }
