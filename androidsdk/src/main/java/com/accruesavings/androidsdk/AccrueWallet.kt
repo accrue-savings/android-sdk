@@ -144,10 +144,15 @@ class AccrueWallet : Fragment() {
                 throw IllegalStateException(errorMsg)
             }
 
-        val builtUrl = buildURL(isSandbox, url, merchantIdValue)
-        Log.v(TAG, "builtUrl=$builtUrl")
         // Create AccrueWebView programmatically
-        val accrueWebView = AccrueWebView(requireContext(), url = builtUrl, contextData, onAction, onSignInPerformed)
+        val accrueWebView = AccrueWebView(
+            requireContext(),
+            url = "about:blank",
+            contextData,
+            onAction,
+            onSignInPerformed = onSignInPerformed,
+            shouldLoadImmediately = false
+        )
         webView = accrueWebView
         
         // Initialize Provisioning if not already pre-initialized
@@ -168,17 +173,43 @@ class AccrueWallet : Fragment() {
         )
         accrueWebView.layoutParams = layoutParams
 
+        loadWidget(accrueWebView, merchantIdValue)
+
         // Return the webView as the root view
         return accrueWebView
     }
 
-    private fun buildURL(isSandbox: Boolean, url: String?, merchantIdParam: String): String {
-        val apiBaseUrl = when {
-            url != null -> url
-            isSandbox -> AppConstants.sandboxUrl
-            else -> AppConstants.productionUrl
+    private fun loadWidget(accrueWebView: AccrueWebView, merchantIdValue: String) {
+        val customUrl = url?.takeIf { it.isNotBlank() }
+        if (customUrl != null) {
+            val builtUrl = buildURL(customUrl, merchantIdValue)
+            Log.v(TAG, "builtUrl=$builtUrl")
+            accrueWebView.loadWidgetUrl(builtUrl)
+            return
         }
 
+        AccrueSdkUrls.fetchWidgetUrl(isSandbox) { result ->
+            if (webView !== accrueWebView) {
+                return@fetchWidgetUrl
+            }
+
+            result
+                .onSuccess { widgetUrl ->
+                    val builtUrl = buildURL(widgetUrl, merchantIdValue)
+                    Log.v(TAG, "builtUrl=$builtUrl")
+                    accrueWebView.loadWidgetUrl(builtUrl)
+                }
+                .onFailure { error ->
+                    Log.e(TAG, "Failed to resolve Accrue widget URL", error)
+                    val fallbackUrl = AccrueSdkUrls.fallbackWidgetUrl(isSandbox)
+                    val builtUrl = buildURL(fallbackUrl, merchantIdValue)
+                    Log.v(TAG, "builtUrl=$builtUrl")
+                    accrueWebView.loadWidgetUrl(builtUrl)
+                }
+        }
+    }
+
+    private fun buildURL(apiBaseUrl: String, merchantIdParam: String): String {
         val uri = Uri.parse(apiBaseUrl).buildUpon()
             .appendQueryParameter("merchantId", merchantIdParam)
 

@@ -69,7 +69,23 @@ class AccrueWebView @JvmOverloads constructor(
     private var contextData: AccrueContextData? = null,
     private var onAction: Map<AccrueAction, () -> Unit> = emptyMap(),
     private var onSignInPerformed: ((AccrueSignInPayload) -> Unit)? = null,
+    private val shouldLoadImmediately: Boolean = true,
 ) : WebView(context) {
+
+    constructor(
+        context: Context,
+        url: String,
+        contextData: AccrueContextData? = null,
+        onAction: Map<AccrueAction, () -> Unit> = emptyMap(),
+        shouldLoadImmediately: Boolean,
+    ) : this(
+        context = context,
+        url = url,
+        contextData = contextData,
+        onAction = onAction,
+        onSignInPerformed = null,
+        shouldLoadImmediately = shouldLoadImmediately
+    )
 
     private var webAppInterface: WebAppInterface? = null
     private var provisioningMain: ProvisioningMain? = null
@@ -166,8 +182,14 @@ class AccrueWebView @JvmOverloads constructor(
         webAppInterface = WebAppInterface(this.onAction, contextData, this, this.onSignInPerformed)
         addJavascriptInterface(webAppInterface!!, AccrueWebEvents.eventHandlerName)
 
-        // Load URL
-        loadUrl(url)
+        if (shouldLoadImmediately) {
+            loadWidgetUrl(url)
+        }
+    }
+
+    internal fun loadWidgetUrl(widgetUrl: String) {
+        url = widgetUrl
+        loadUrl(widgetUrl)
     }
 
     private class WebAppInterface(

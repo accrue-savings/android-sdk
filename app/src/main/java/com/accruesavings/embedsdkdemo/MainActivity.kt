@@ -108,7 +108,7 @@ class MainActivity : AppCompatActivity() {
             activity = this,
             contextData = contextData,
             redirectionToken = redirectionToken,
-            isSandbox = false,
+            isSandbox = true,
             merchantId = merchantId,
             url = url.ifEmpty { null },
             onAction = mapOf(
