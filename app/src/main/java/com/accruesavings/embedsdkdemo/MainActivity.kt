@@ -102,7 +102,7 @@ class MainActivity : AppCompatActivity() {
             redirectionToken = redirectionToken,
             isSandbox = false,
             merchantId = merchantId,
-            url = "http://localhost:5173/webview",
+//            url = "http://localhost:5173/webview",
             onAction = mapOf(
                 AccrueAction.SignInButtonClicked to {
                     Log.i("AccrueWebView", "SIGN IN BUTTON HANDLER ACTIVATED")
